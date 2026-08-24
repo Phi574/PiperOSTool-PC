@@ -44,13 +44,14 @@
               <button class="primary" id="connectQr">Kết nối QR</button>
             </div>
             <div id="usbControls" class="mode-controls hidden">
+              <button class="secondary" id="setupUsb">Thiết lập USB / ADB</button>
               <button class="secondary" id="scanUsb">Quét ADB qua USB</button>
               <label>Thiết bị<select id="usbDevices"><option>Chưa quét</option></select></label>
               <label>Cổng View Remote<input id="usbPort" inputmode="numeric" placeholder="Ví dụ: 39211" /></label>
               <label>Khóa phiên<input id="usbCredential" placeholder="Mã QR, token hoặc mã 6 số" /></label>
               <select id="usbMethod"><option value="QR">QR token</option><option value="CODE">Mã 6 số</option><option value="LAN">Phiên LAN</option></select>
               <button class="primary" id="connectUsb">Kết nối USB</button>
-              <p class="hint">Bật Chia sẻ màn hình trong app Android trước, sau đó dùng cổng và khóa hiển thị trong QR/mã phiên.</p>
+              <p class="hint" id="usbHint">Bật Gỡ lỗi USB, xác nhận khóa RSA trên điện thoại, rồi bật Chia sẻ màn hình trong app Android.</p>
             </div>
             <div class="quality"><span>Chất lượng</span><select id="qualityWidth"><option value="1280">720p</option><option value="1920" selected>1080p</option><option value="2560">1440p</option></select><select id="qualityFps"><option value="24">24 FPS</option><option value="30">30 FPS</option><option value="60" selected>60 FPS</option></select></div>
           </section>

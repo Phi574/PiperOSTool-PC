@@ -48,21 +48,20 @@ document.querySelectorAll('#connectionMode button').forEach((button) => button.o
 $('scanLan').onclick = async () => { status('Đang quét mạng cục bộ...'); const list = await window.piperos.discover(); $('endpointList').replaceChildren(...(list.length ? list.map(endpointRow) : [Object.assign(document.createElement('p'), { className: 'muted', textContent: 'Không tìm thấy thiết bị đang chia sẻ.' })])); status(list.length ? `Tìm thấy ${list.length} thiết bị` : 'Không tìm thấy thiết bị'); };
 $('connectCode').onclick = async () => { const code = $('pairCode').value.trim(); if (!/^\d{6}$/.test(code)) return status('Nhập đúng mã 6 chữ số.', true); const [endpoint] = await window.piperos.discover(code); if (!endpoint) return status('Không tìm thấy mã ghép nối.', true); await connectEndpoint({ ...endpoint, method: 'CODE', credential: code }); };
 $('connectQr').onclick = async () => { try { await connectEndpoint(parseQr()); } catch (error) { status(error.message, true); } };
-$('scanUsb').onclick = async () => { try { const devices = await window.piperos.usbDevices(); $('usbDevices').replaceChildren(...devices.map((device) => Object.assign(document.createElement('option'), { value: device.serial, textContent: `${device.serial} · ${device.details || 'Android'}` }))); if (!devices.length) $('usbDevices').innerHTML = '<option>Không thấy ADB device</option>'; } catch (error) { status(`ADB: ${error.message}`, true); } };
+$('setupUsb').onclick = async () => { try { const result = await window.piperos.usbSetup(); const blocked = result.devices.find((device) => device.state !== 'device'); $('usbHint').textContent = blocked ? `ADB đã nhận ${blocked.serial} nhưng trạng thái ${blocked.state}. Mở điện thoại và xác nhận "Cho phép gỡ lỗi USB".` : `${result.version}. ADB sẵn sàng, tìm thấy ${result.devices.length} thiết bị.`; status('USB / ADB đã sẵn sàng'); } catch (error) { $('usbHint').textContent = error.message; status('Cần cài Platform Tools hoặc driver OEM', true); } };
+$('scanUsb').onclick = async () => { try { const devices = await window.piperos.usbDevices(); $('usbDevices').replaceChildren(...devices.map((device) => Object.assign(document.createElement('option'), { value: device.serial, disabled: device.state !== 'device', textContent: `${device.serial} · ${device.state}${device.details ? ` · ${device.details}` : ''}` }))); if (!devices.length) $('usbDevices').innerHTML = '<option>Không thấy ADB device</option>'; const blocked = devices.find((device) => device.state !== 'device'); $('usbHint').textContent = blocked ? `Thiết bị ${blocked.serial} đang ${blocked.state}. Hãy mở khóa máy và chấp nhận gỡ lỗi USB.` : 'ADB sẵn sàng. Chọn thiết bị rồi nhập cổng/khóa View Remote.'; } catch (error) { status(`ADB: ${error.message}`, true); } };
 $('connectUsb').onclick = async () => { try { const serial = $('usbDevices').value; const port = Number($('usbPort').value); const credential = $('usbCredential').value.trim(); if (!serial || !port || !credential) throw new Error('Chọn thiết bị, cổng View Remote và khóa phiên.'); status('Đang tạo USB tunnel...'); await window.piperos.usbConnect(serial, port, credential, $('usbMethod').value); } catch (error) { status(error.message, true); } };
 $('disconnect').onclick = () => window.piperos.disconnect(); $('sendBack').onclick = () => window.piperos.key(3); $('sendHome').onclick = () => window.piperos.key(4);
-const viewerPanel = document.querySelector('.viewer-panel');
 const fullscreenButton = $('toggleFullscreen');
+let windowFullscreen = false;
 fullscreenButton.onclick = async () => {
-  if (document.fullscreenElement) await document.exitFullscreen();
-  else await viewerPanel.requestFullscreen();
-};
-document.addEventListener('fullscreenchange', () => {
-  const active = document.fullscreenElement === viewerPanel;
+  const active = await window.piperos.fullscreen(!windowFullscreen);
+  windowFullscreen = active;
   fullscreenButton.textContent = active ? '⤢' : '⛶';
   fullscreenButton.title = active ? 'Thoát toàn màn hình' : 'Toàn màn hình';
   fullscreenButton.setAttribute('aria-label', fullscreenButton.title);
-});
+};
+window.piperos.on('window:fullscreen', (active) => { windowFullscreen = active; fullscreenButton.textContent = active ? '⤢' : '⛶'; fullscreenButton.title = active ? 'Thoát toàn màn hình' : 'Toàn màn hình'; fullscreenButton.setAttribute('aria-label', fullscreenButton.title); });
 $('screenStage').addEventListener('pointerdown', (event) => { const box = canvas.getBoundingClientRect(); window.piperos.touch({ action: 0, x: (event.clientX - box.left) / box.width, y: (event.clientY - box.top) / box.height }); });
 $('screenStage').addEventListener('pointermove', (event) => { if (event.buttons) { const box = canvas.getBoundingClientRect(); window.piperos.touch({ action: 2, x: (event.clientX - box.left) / box.width, y: (event.clientY - box.top) / box.height }); } });
 $('screenStage').addEventListener('pointerup', (event) => { const box = canvas.getBoundingClientRect(); window.piperos.touch({ action: 1, x: (event.clientX - box.left) / box.width, y: (event.clientY - box.top) / box.height }); });

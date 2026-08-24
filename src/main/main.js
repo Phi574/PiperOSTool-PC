@@ -23,6 +23,8 @@ function createWindow() {
     title: 'PiperOS Tool',
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false }
   });
+  windowRef.on('enter-full-screen', () => send('window:fullscreen', true));
+  windowRef.on('leave-full-screen', () => send('window:fullscreen', false));
   windowRef.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
 }
 
@@ -57,6 +59,7 @@ ipcMain.handle('remote:disconnect', async () => { client.close(); return true; }
 ipcMain.on('remote:touch', (_, payload) => client.sendTouch(payload.action, payload.x, payload.y));
 ipcMain.on('remote:key', (_, kind) => client.sendKey(kind));
 ipcMain.handle('usb:devices', () => adb.listDevices());
+ipcMain.handle('usb:setup', () => adb.setup());
 ipcMain.handle('usb:connect', async (_, serial, devicePort, credential, method) => {
   if (forwarded) await adb.removeForward(forwarded.serial, forwarded.port);
   const tunnel = await adb.forward(serial, devicePort);
@@ -68,4 +71,8 @@ ipcMain.handle('firebase:login', (_, email, password) => firebase.login(email, p
 ipcMain.handle('firebase:logout', () => firebase.logout());
 ipcMain.handle('apple:start', (_, settings) => appleReceiver.start(settings));
 ipcMain.handle('apple:stop', () => appleReceiver.stop());
+ipcMain.handle('window:fullscreen', (_, enabled) => {
+  windowRef?.setFullScreen(Boolean(enabled));
+  return windowRef?.isFullScreen() ?? false;
+});
 ipcMain.handle('system:open-external', (_, url) => shell.openExternal(url));

@@ -5,8 +5,14 @@ const path = require('node:path');
 const execFileAsync = promisify(execFile);
 
 function adbPath() {
-  if (process.env.ANDROID_SDK_ROOT) return path.join(process.env.ANDROID_SDK_ROOT, 'platform-tools', 'adb.exe');
-  return process.env.PIPEROS_ADB_PATH || 'adb';
+  const candidates = [
+    process.env.PIPEROS_ADB_PATH,
+    process.env.ANDROID_SDK_ROOT && path.join(process.env.ANDROID_SDK_ROOT, 'platform-tools', 'adb.exe'),
+    process.env.LOCALAPPDATA && path.join(process.env.LOCALAPPDATA, 'Android', 'Sdk', 'platform-tools', 'adb.exe'),
+    path.join(process.resourcesPath || '', 'resources', 'platform-tools', 'adb.exe'),
+    'adb'
+  ].filter(Boolean);
+  return candidates.find((candidate) => candidate === 'adb' || require('node:fs').existsSync(candidate));
 }
 
 async function runAdb(args) {
@@ -15,11 +21,23 @@ async function runAdb(args) {
 }
 
 async function listDevices() {
+  await runAdb(['start-server']);
   const { stdout } = await runAdb(['devices', '-l']);
   return stdout.split(/\r?\n/).slice(1).map((line) => {
     const [serial, state, ...details] = line.trim().split(/\s+/);
     return { serial, state, details: details.join(' ') };
-  }).filter((device) => device.serial && device.state === 'device');
+  }).filter((device) => device.serial);
+}
+
+async function setup() {
+  const executable = adbPath();
+  try {
+    const version = await runAdb(['version']);
+    const devices = await listDevices();
+    return { executable, version: version.stdout.split(/\r?\n/)[0], devices };
+  } catch (error) {
+    throw new Error(`Không tìm thấy hoặc không khởi động được ADB. Cài Android Platform Tools/driver OEM rồi thử lại. ${error.message}`);
+  }
 }
 
 async function forward(serial, devicePort) {
@@ -33,4 +51,4 @@ async function removeForward(serial, localPort) {
   await runAdb(['-s', serial, 'forward', '--remove', `tcp:${localPort}`]).catch(() => undefined);
 }
 
-module.exports = { listDevices, forward, removeForward };
+module.exports = { listDevices, setup, forward, removeForward };
