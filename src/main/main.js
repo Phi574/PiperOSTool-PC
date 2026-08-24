@@ -60,11 +60,16 @@ ipcMain.on('remote:touch', (_, payload) => client.sendTouch(payload.action, payl
 ipcMain.on('remote:key', (_, kind) => client.sendKey(kind));
 ipcMain.handle('usb:devices', () => adb.listUsbDevices());
 ipcMain.handle('usb:setup', () => adb.setup());
-ipcMain.handle('usb:connect', async (_, serial, devicePort, credential, method) => {
+ipcMain.handle('usb:connect', async (_, serial, quality) => {
   if (forwarded) await adb.removeForward(forwarded.serial, forwarded.port);
-  const tunnel = await adb.forward(serial, devicePort);
+  const tunnel = await adb.forward(serial);
   forwarded = { serial, port: tunnel.port };
-  await client.connect({ ...tunnel, credential, method }, `PiperOS PC USB (${require('node:os').hostname()})`, 1920, 60);
+  await client.connect(
+    { ...tunnel, credential: 'piperos-usb-adb-v1', method: 'USB' },
+    `PiperOS PC USB (${require('node:os').hostname()})`,
+    quality.width,
+    quality.fps
+  );
   return tunnel;
 });
 ipcMain.handle('firebase:login', (_, email, password) => firebase.login(email, password));

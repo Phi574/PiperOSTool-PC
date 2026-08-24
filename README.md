@@ -31,7 +31,10 @@ npm run msi
 
 ## USB Type-C và driver
 
-App dùng ADB chuẩn qua `adb forward`; cài signed Google/OEM USB driver, không cài
+App dùng ADB chuẩn qua `adb forward`; tab **USB Type-C** chỉ nhận thiết bị vật lý
+trong `adb devices` (không dùng Wireless debugging). Trên Android, chọn **Chia sẻ qua
+cáp USB (ADB)** và xác nhận chụp màn hình, sau đó bấm **Kết nối qua cáp USB** trên PC.
+Cài signed Google/OEM USB driver, không cài
 kernel driver không ký. Đọc hướng dẫn tại [resources/drivers/README.md](resources/drivers/README.md).
 
 ## Apple receiver

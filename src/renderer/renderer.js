@@ -5,9 +5,28 @@ const context = canvas.getContext('2d');
 let audioContext; let audioRate = 48_000; let audioChannels = 2; let nextAudioAt = 0;
 
 function quality() { return { width: Number($('qualityWidth').value), fps: Number($('qualityFps').value) }; }
+async function refreshUsbDevices(showStatus = false) {
+  const devices = await window.piperos.usbDevices();
+  const select = $('usbDevices');
+  select.replaceChildren(...devices.map((device) => Object.assign(document.createElement('option'), {
+    value: device.serial,
+    disabled: device.state !== 'device',
+    textContent: `${device.serial} · ${device.state}${device.details ? ` · ${device.details}` : ''}`
+  })));
+  if (!devices.length) select.innerHTML = '<option value="">Đang chờ thiết bị cắm cáp...</option>';
+  const blocked = devices.find((device) => device.state !== 'device');
+  $('usbHint').textContent = blocked
+    ? `Đã nhận cáp USB: ${blocked.serial} đang ${blocked.state}. Mở khóa máy và chọn “Cho phép gỡ lỗi USB”.`
+    : devices.length
+      ? 'Đã nhận thiết bị qua adb devices. Không dùng Gỡ lỗi không dây, QR, IP hay mã kết nối.'
+      : 'Chưa thấy thiết bị USB. Hãy bật Gỡ lỗi USB, dùng cáp dữ liệu và xác nhận khóa RSA trên điện thoại.';
+  if (showStatus) status(devices.length ? 'Đã nhận ADB qua cáp USB' : 'Đang chờ ADB qua cáp USB', !devices.length);
+  return devices;
+}
 function switchMode(mode) {
   document.querySelectorAll('#connectionMode button').forEach((button) => button.classList.toggle('selected', button.dataset.mode === mode));
   ['lan', 'code', 'qr', 'usb'].forEach((item) => $(`${item}Controls`).classList.toggle('hidden', item !== mode));
+  if (mode === 'usb') refreshUsbDevices().catch((error) => status(`ADB: ${error.message}`, true));
 }
 function endpointRow(endpoint) {
   const item = document.createElement('div'); item.className = 'endpoint';
@@ -48,9 +67,8 @@ document.querySelectorAll('#connectionMode button').forEach((button) => button.o
 $('scanLan').onclick = async () => { status('Đang quét mạng cục bộ...'); const list = await window.piperos.discover(); $('endpointList').replaceChildren(...(list.length ? list.map(endpointRow) : [Object.assign(document.createElement('p'), { className: 'muted', textContent: 'Không tìm thấy thiết bị đang chia sẻ.' })])); status(list.length ? `Tìm thấy ${list.length} thiết bị` : 'Không tìm thấy thiết bị'); };
 $('connectCode').onclick = async () => { const code = $('pairCode').value.trim(); if (!/^\d{6}$/.test(code)) return status('Nhập đúng mã 6 chữ số.', true); const [endpoint] = await window.piperos.discover(code); if (!endpoint) return status('Không tìm thấy mã ghép nối.', true); await connectEndpoint({ ...endpoint, method: 'CODE', credential: code }); };
 $('connectQr').onclick = async () => { try { await connectEndpoint(parseQr()); } catch (error) { status(error.message, true); } };
-$('setupUsb').onclick = async () => { try { const result = await window.piperos.usbSetup(); const blocked = result.devices.find((device) => device.state !== 'device'); $('usbHint').textContent = blocked ? `Đã nhận cáp USB: ${blocked.serial} đang ${blocked.state}. Mở khóa máy và chọn “Cho phép gỡ lỗi USB”.` : result.devices.length ? `${result.version}. Đã nhận ${result.devices.length} thiết bị qua cáp USB.` : `${result.version}. Chưa thấy thiết bị USB; kiểm tra cáp, chế độ dữ liệu và driver OEM.`; status('USB / ADB đã sẵn sàng'); } catch (error) { $('usbHint').textContent = error.message; status('Cần cài Platform Tools hoặc driver OEM', true); } };
-$('scanUsb').onclick = async () => { try { const devices = await window.piperos.usbDevices(); $('usbDevices').replaceChildren(...devices.map((device) => Object.assign(document.createElement('option'), { value: device.serial, disabled: device.state !== 'device', textContent: `${device.serial} · ${device.state}${device.details ? ` · ${device.details}` : ''}` }))); if (!devices.length) $('usbDevices').innerHTML = '<option>Không thấy thiết bị cắm cáp</option>'; const blocked = devices.find((device) => device.state !== 'device'); $('usbHint').textContent = blocked ? `Thiết bị USB ${blocked.serial} đang ${blocked.state}. Hãy mở khóa máy và chấp nhận gỡ lỗi USB.` : devices.length ? 'Đã lọc chỉ thiết bị ADB cắm cáp. Chọn thiết bị rồi nhập cổng/khóa View Remote.' : 'Không thấy ADB qua cáp. Gỡ lỗi không dây không được dùng trong chế độ này.'; } catch (error) { status(`ADB: ${error.message}`, true); } };
-$('connectUsb').onclick = async () => { try { const serial = $('usbDevices').value; const port = Number($('usbPort').value); const credential = $('usbCredential').value.trim(); if (!serial || !port || !credential) throw new Error('Chọn thiết bị USB, cổng View Remote và khóa phiên.'); status('Đang tạo ADB forward qua cáp USB...'); await window.piperos.usbConnect(serial, port, credential, 'USB'); } catch (error) { status(error.message, true); } };
+$('setupUsb').onclick = async () => { try { const result = await window.piperos.usbSetup(); await refreshUsbDevices(); status(result.devices.length ? 'USB / ADB đã sẵn sàng' : 'Đang chờ thiết bị USB', !result.devices.length); } catch (error) { $('usbHint').textContent = error.message; status('Cần cài Platform Tools hoặc driver OEM', true); } };
+$('connectUsb').onclick = async () => { try { const devices = await refreshUsbDevices(); const serial = $('usbDevices').value || devices.find((device) => device.state === 'device')?.serial; if (!serial) throw new Error('Chưa có thiết bị ADB qua cáp USB đã được cấp quyền.'); status('Đang tạo ADB forward qua cáp USB...'); await window.piperos.usbConnect(serial, quality()); } catch (error) { status(`${error.message}. Trên Android, mở View Remote > Chia sẻ qua cáp USB (ADB) và xác nhận chụp màn hình.`, true); } };
 $('disconnect').onclick = () => window.piperos.disconnect(); $('sendBack').onclick = () => window.piperos.key(3); $('sendHome').onclick = () => window.piperos.key(4);
 const fullscreenButton = $('toggleFullscreen');
 let windowFullscreen = false;

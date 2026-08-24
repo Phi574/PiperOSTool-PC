@@ -45,12 +45,9 @@
             </div>
             <div id="usbControls" class="mode-controls hidden">
               <button class="secondary" id="setupUsb">Kiểm tra USB / ADB</button>
-              <button class="secondary" id="scanUsb">Quét thiết bị cắm cáp</button>
-              <label>Thiết bị USB<select id="usbDevices"><option>Chưa quét</option></select></label>
-              <label>Cổng View Remote<input id="usbPort" inputmode="numeric" placeholder="Ví dụ: 39211" /></label>
-              <label>Khóa phiên từ Android<input id="usbCredential" placeholder="Token của phiên View Remote" /></label>
+              <label>Thiết bị USB<select id="usbDevices"><option>Đang chờ thiết bị cắm cáp...</option></select></label>
               <button class="primary" id="connectUsb">Kết nối qua cáp USB</button>
-              <p class="hint" id="usbHint">Chỉ dùng ADB qua cáp: bật Gỡ lỗi USB, xác nhận khóa RSA trên điện thoại, rồi bật Chia sẻ màn hình trong app Android. Không dùng Gỡ lỗi không dây.</p>
+              <p class="hint" id="usbHint">Tự nhận thiết bị qua adb devices. Trên điện thoại, mở View Remote, chọn Chia sẻ qua cáp USB (ADB), xác nhận chụp màn hình; sau đó chỉ bấm Kết nối qua cáp USB ở đây.</p>
             </div>
             <div class="quality"><span>Chất lượng</span><select id="qualityWidth"><option value="1280">720p</option><option value="1920" selected>1080p</option><option value="2560">1440p</option></select><select id="qualityFps"><option value="24">24 FPS</option><option value="30">30 FPS</option><option value="60" selected>60 FPS</option></select></div>
           </section>

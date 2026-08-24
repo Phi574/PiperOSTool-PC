@@ -8,7 +8,7 @@ contextBridge.exposeInMainWorld('piperos', {
   key: (kind) => ipcRenderer.send('remote:key', kind),
   usbDevices: () => ipcRenderer.invoke('usb:devices'),
   usbSetup: () => ipcRenderer.invoke('usb:setup'),
-  usbConnect: (serial, port, credential, method) => ipcRenderer.invoke('usb:connect', serial, port, credential, method),
+  usbConnect: (serial, quality) => ipcRenderer.invoke('usb:connect', serial, quality),
   firebaseLogin: (email, password) => ipcRenderer.invoke('firebase:login', email, password),
   firebaseLogout: () => ipcRenderer.invoke('firebase:logout'),
   appleStart: (settings) => ipcRenderer.invoke('apple:start', settings),

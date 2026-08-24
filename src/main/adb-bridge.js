@@ -47,7 +47,7 @@ async function setup() {
   }
 }
 
-async function forward(serial, devicePort) {
+async function forward(serial, devicePort = 39211) {
   const { stdout } = await runAdb(['-s', serial, 'forward', 'tcp:0', `tcp:${devicePort}`]);
   const localPort = Number(stdout);
   if (!Number.isInteger(localPort) || localPort <= 0) throw new Error('Không thể tạo cổng USB cho PiperOS View Remote.');
