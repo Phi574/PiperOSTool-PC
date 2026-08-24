@@ -29,11 +29,18 @@ async function listDevices() {
   }).filter((device) => device.serial);
 }
 
+// Wireless debugging devices appear in ADB as "host:port". The USB workflow
+// must never offer them, even if the user previously ran `adb connect`.
+async function listUsbDevices() {
+  const devices = await listDevices();
+  return devices.filter((device) => !device.serial.includes(':'));
+}
+
 async function setup() {
   const executable = adbPath();
   try {
     const version = await runAdb(['version']);
-    const devices = await listDevices();
+    const devices = await listUsbDevices();
     return { executable, version: version.stdout.split(/\r?\n/)[0], devices };
   } catch (error) {
     throw new Error(`Không tìm thấy hoặc không khởi động được ADB. Cài Android Platform Tools/driver OEM rồi thử lại. ${error.message}`);
@@ -51,4 +58,4 @@ async function removeForward(serial, localPort) {
   await runAdb(['-s', serial, 'forward', '--remove', `tcp:${localPort}`]).catch(() => undefined);
 }
 
-module.exports = { listDevices, setup, forward, removeForward };
+module.exports = { listUsbDevices, setup, forward, removeForward };

@@ -58,7 +58,7 @@ ipcMain.handle('remote:connect', async (_, endpoint, quality) => {
 ipcMain.handle('remote:disconnect', async () => { client.close(); return true; });
 ipcMain.on('remote:touch', (_, payload) => client.sendTouch(payload.action, payload.x, payload.y));
 ipcMain.on('remote:key', (_, kind) => client.sendKey(kind));
-ipcMain.handle('usb:devices', () => adb.listDevices());
+ipcMain.handle('usb:devices', () => adb.listUsbDevices());
 ipcMain.handle('usb:setup', () => adb.setup());
 ipcMain.handle('usb:connect', async (_, serial, devicePort, credential, method) => {
   if (forwarded) await adb.removeForward(forwarded.serial, forwarded.port);
