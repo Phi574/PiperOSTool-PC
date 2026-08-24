@@ -51,6 +51,18 @@ $('connectQr').onclick = async () => { try { await connectEndpoint(parseQr()); }
 $('scanUsb').onclick = async () => { try { const devices = await window.piperos.usbDevices(); $('usbDevices').replaceChildren(...devices.map((device) => Object.assign(document.createElement('option'), { value: device.serial, textContent: `${device.serial} · ${device.details || 'Android'}` }))); if (!devices.length) $('usbDevices').innerHTML = '<option>Không thấy ADB device</option>'; } catch (error) { status(`ADB: ${error.message}`, true); } };
 $('connectUsb').onclick = async () => { try { const serial = $('usbDevices').value; const port = Number($('usbPort').value); const credential = $('usbCredential').value.trim(); if (!serial || !port || !credential) throw new Error('Chọn thiết bị, cổng View Remote và khóa phiên.'); status('Đang tạo USB tunnel...'); await window.piperos.usbConnect(serial, port, credential, $('usbMethod').value); } catch (error) { status(error.message, true); } };
 $('disconnect').onclick = () => window.piperos.disconnect(); $('sendBack').onclick = () => window.piperos.key(3); $('sendHome').onclick = () => window.piperos.key(4);
+const viewerPanel = document.querySelector('.viewer-panel');
+const fullscreenButton = $('toggleFullscreen');
+fullscreenButton.onclick = async () => {
+  if (document.fullscreenElement) await document.exitFullscreen();
+  else await viewerPanel.requestFullscreen();
+};
+document.addEventListener('fullscreenchange', () => {
+  const active = document.fullscreenElement === viewerPanel;
+  fullscreenButton.textContent = active ? '⤢' : '⛶';
+  fullscreenButton.title = active ? 'Thoát toàn màn hình' : 'Toàn màn hình';
+  fullscreenButton.setAttribute('aria-label', fullscreenButton.title);
+});
 $('screenStage').addEventListener('pointerdown', (event) => { const box = canvas.getBoundingClientRect(); window.piperos.touch({ action: 0, x: (event.clientX - box.left) / box.width, y: (event.clientY - box.top) / box.height }); });
 $('screenStage').addEventListener('pointermove', (event) => { if (event.buttons) { const box = canvas.getBoundingClientRect(); window.piperos.touch({ action: 2, x: (event.clientX - box.left) / box.width, y: (event.clientY - box.top) / box.height }); } });
 $('screenStage').addEventListener('pointerup', (event) => { const box = canvas.getBoundingClientRect(); window.piperos.touch({ action: 1, x: (event.clientX - box.left) / box.width, y: (event.clientY - box.top) / box.height }); });
