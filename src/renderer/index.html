@@ -14,7 +14,7 @@
       <button class="nav-item" data-page="apple">Chiếu màn hình Apple</button>
       <div class="side-fill"></div>
       <div class="account" id="accountState">Chưa đăng nhập Firebase</div>
-      <button class="link-button" id="firebaseButton">Thiết lập Firebase</button>
+      <button class="link-button" id="firebaseButton">Đăng nhập Firebase</button>
     </aside>
     <main class="content">
       <section class="page active" id="remotePage">
@@ -40,8 +40,10 @@
               <button class="primary" id="connectCode">Tìm và kết nối</button>
             </div>
             <div id="qrControls" class="mode-controls hidden">
+              <button class="primary" id="createPcQr">Hiển thị mã QR để điện thoại quét</button>
+              <div id="pcQrCard" class="qr-card hidden"><img id="pcQrImage" alt="Mã QR kết nối PiperOS PC" /><strong>Quét mã này trong PiperOS View Remote</strong><small id="pcQrStatus">Mã sẽ tự hết hạn sau 5 phút.</small></div>
               <label>Nội dung mã QR<input id="qrUri" placeholder="piperos://remote?host=..." /></label>
-              <button class="primary" id="connectQr">Kết nối QR</button>
+              <button class="secondary" id="connectQr">Kết nối mã QR có sẵn</button>
             </div>
             <div id="usbControls" class="mode-controls hidden">
               <button class="secondary" id="setupUsb">Kiểm tra USB / ADB</button>
@@ -70,6 +72,7 @@
       </section>
     </main>
   </div>
+  <dialog id="loginDialog" class="login-dialog"><form id="loginForm"><button class="dialog-close" id="closeLoginDialog" type="button" aria-label="Đóng">×</button><h2>Đăng nhập PiperOS</h2><p>Phiên PC sẽ hiện trong danh sách thiết bị đang đăng nhập.</p><label>Email<input id="firebaseEmail" type="email" autocomplete="username" required /></label><label>Mật khẩu<input id="firebasePassword" type="password" autocomplete="current-password" required /></label><p id="loginError" class="error-text"></p><button class="primary" type="submit">Đăng nhập</button></form></dialog>
   <script src="renderer.js"></script>
 </body>
 </html>

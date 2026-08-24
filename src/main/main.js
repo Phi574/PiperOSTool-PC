@@ -4,12 +4,15 @@ const { PiperRemoteClient, discoverRemote } = require('./remote-client');
 const adb = require('./adb-bridge');
 const { FirebaseService } = require('./firebase-service');
 const { AppleReceiver } = require('./apple-receiver');
+const { PcPairingService } = require('./pc-pairing-service');
+const QRCode = require('qrcode');
 
 let windowRef;
 let client;
 let forwarded;
 let firebase;
 let appleReceiver;
+let pcPairing;
 
 function send(channel, payload) { windowRef?.webContents.send(channel, payload); }
 
@@ -41,11 +44,17 @@ function setupClient() {
 app.whenReady().then(() => {
   firebase = new FirebaseService(app.getPath('userData'), app.isPackaged ? path.join(process.resourcesPath, 'resources') : path.join(process.cwd(), 'resources'));
   appleReceiver = new AppleReceiver(app.isPackaged ? path.join(process.resourcesPath, 'resources') : path.join(process.cwd(), 'resources'));
-  createWindow(); setupClient();
+  setupClient();
+  pcPairing = new PcPairingService(async (endpoint) => {
+    try { await client.connect(endpoint, `PiperOS PC (${require('node:os').hostname()})`, 1920, 60); }
+    catch (error) { send('remote:error', error.message); }
+  });
+  createWindow();
   app.on('activate', () => BrowserWindow.getAllWindows().length || createWindow());
 });
 app.on('window-all-closed', () => process.platform !== 'darwin' && app.quit());
 app.on('before-quit', async () => {
+  pcPairing?.stop();
   client?.close();
   if (forwarded) await adb.removeForward(forwarded.serial, forwarded.port);
 });
@@ -74,6 +83,11 @@ ipcMain.handle('usb:connect', async (_, serial, quality) => {
 });
 ipcMain.handle('firebase:login', (_, email, password) => firebase.login(email, password));
 ipcMain.handle('firebase:logout', () => firebase.logout());
+ipcMain.handle('firebase:restore', () => firebase.restore());
+ipcMain.handle('remote:pc-qr', async () => {
+  const pairing = await pcPairing.start();
+  return { ...pairing, image: await QRCode.toDataURL(pairing.uri, { width: 360, margin: 2 }) };
+});
 ipcMain.handle('apple:start', (_, settings) => appleReceiver.start(settings));
 ipcMain.handle('apple:stop', () => appleReceiver.stop());
 ipcMain.handle('window:fullscreen', (_, enabled) => {

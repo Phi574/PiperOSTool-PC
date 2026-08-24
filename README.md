@@ -2,14 +2,20 @@
 
 <p align="center">Windows companion cho <a href="https://github.com/Phi574/PiperOSTool-Android">PiperOS Tool Android</a>.</p>
 
-## 3.2.3.beta
+## 3.2.4.beta
 
 - **PiperOS View Remote:** nhận ảnh JPEG và âm thanh PCM từ Android qua cùng giao
   thức `PIPER_REMOTE_2`; hỗ trợ LAN discovery, QR, mã 6 số và USB Type-C qua ADB.
+  Nút toàn màn hình phóng đúng bề mặt hình chiếu; ảnh giữ đúng tỉ lệ và dùng toàn bộ
+  vùng xem khả dụng.
+- **QR PC:** PC tự tạo QR một lần, điện thoại quét trong PiperOS View Remote, cấp
+  quyền chia sẻ rồi PC tự kết nối vào phiên có xác nhận ở Android. Dữ liệu hình ảnh
+  luôn đi thẳng trong mạng nội bộ.
 - **Điều khiển Android:** gửi touch, Back và Home; Android luôn yêu cầu xác nhận
   phiên ở thiết bị đang chia sẻ trước khi video được truyền.
 - **Firebase:** đăng nhập bằng đúng Firebase project của PiperOS Tool để lưu dấu
-  phiên PC theo UID. Không lưu mật khẩu trên máy.
+  phiên PC theo UID trong `users/{uid}/deviceSessions`. Phiên được mã hóa bằng
+  Windows DPAPI và tự khôi phục sau khi mở lại PC; không lưu mật khẩu.
 - **Apple Screen Mirroring:** khung native receiver AirPlay/RAOP, chạy như service
   companion có thể đóng gói trong MSI. Không dùng hay bao gồm thành phần Apple độc
   quyền hoặc nội dung DRM.
@@ -20,11 +26,12 @@ Yêu cầu: Node.js LTS, npm, Android platform-tools cho USB; WiX CLI nếu cầ
 
 ```powershell
 npm install
-Copy-Item resources/firebase-config.example.json resources/firebase-config.json
-# điền Firebase Web configuration vào firebase-config.json
 npm run dist
 npm run msi
 ```
+
+`resources/firebase-config.json` chỉ chứa cấu hình client Firebase công khai, không
+bao giờ đưa service account, khóa quản trị hay `google-services.json` vào PC repo.
 
 `npm run dist` tạo NSIS `.exe` và portable `.exe` trong `release/`. `npm run msi`
 đóng gói thư mục `win-unpacked` thành MSI sau khi WiX được cài.

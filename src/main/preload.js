@@ -11,6 +11,8 @@ contextBridge.exposeInMainWorld('piperos', {
   usbConnect: (serial, quality) => ipcRenderer.invoke('usb:connect', serial, quality),
   firebaseLogin: (email, password) => ipcRenderer.invoke('firebase:login', email, password),
   firebaseLogout: () => ipcRenderer.invoke('firebase:logout'),
+  firebaseRestore: () => ipcRenderer.invoke('firebase:restore'),
+  createPcQr: () => ipcRenderer.invoke('remote:pc-qr'),
   appleStart: (settings) => ipcRenderer.invoke('apple:start', settings),
   appleStop: () => ipcRenderer.invoke('apple:stop'),
   fullscreen: (enabled) => ipcRenderer.invoke('window:fullscreen', enabled),

@@ -71,19 +71,20 @@ $('setupUsb').onclick = async () => { try { const result = await window.piperos.
 $('connectUsb').onclick = async () => { try { const devices = await refreshUsbDevices(); const serial = $('usbDevices').value || devices.find((device) => device.state === 'device')?.serial; if (!serial) throw new Error('Chưa có thiết bị ADB qua cáp USB đã được cấp quyền.'); status('Đang tạo ADB forward qua cáp USB...'); await window.piperos.usbConnect(serial, quality()); } catch (error) { status(`${error.message}. Trên Android, mở View Remote > Chia sẻ qua cáp USB (ADB) và xác nhận chụp màn hình.`, true); } };
 $('disconnect').onclick = () => window.piperos.disconnect(); $('sendBack').onclick = () => window.piperos.key(3); $('sendHome').onclick = () => window.piperos.key(4);
 const fullscreenButton = $('toggleFullscreen');
-let windowFullscreen = false;
-fullscreenButton.onclick = async () => {
-  const active = await window.piperos.fullscreen(!windowFullscreen);
-  windowFullscreen = active;
-  fullscreenButton.textContent = active ? '⤢' : '⛶';
-  fullscreenButton.title = active ? 'Thoát toàn màn hình' : 'Toàn màn hình';
-  fullscreenButton.setAttribute('aria-label', fullscreenButton.title);
-};
-window.piperos.on('window:fullscreen', (active) => { windowFullscreen = active; fullscreenButton.textContent = active ? '⤢' : '⛶'; fullscreenButton.title = active ? 'Thoát toàn màn hình' : 'Toàn màn hình'; fullscreenButton.setAttribute('aria-label', fullscreenButton.title); });
+const viewerPanel = document.querySelector('.viewer-panel');
+function syncFullscreenButton() { const active = document.fullscreenElement === viewerPanel; fullscreenButton.textContent = active ? '⤢' : '⛶'; fullscreenButton.title = active ? 'Thoát toàn màn hình chiếu' : 'Toàn màn hình chiếu'; fullscreenButton.setAttribute('aria-label', fullscreenButton.title); }
+fullscreenButton.onclick = async () => { if (document.fullscreenElement === viewerPanel) await document.exitFullscreen(); else await viewerPanel.requestFullscreen(); };
+document.addEventListener('fullscreenchange', syncFullscreenButton);
 $('screenStage').addEventListener('pointerdown', (event) => { const box = canvas.getBoundingClientRect(); window.piperos.touch({ action: 0, x: (event.clientX - box.left) / box.width, y: (event.clientY - box.top) / box.height }); });
 $('screenStage').addEventListener('pointermove', (event) => { if (event.buttons) { const box = canvas.getBoundingClientRect(); window.piperos.touch({ action: 2, x: (event.clientX - box.left) / box.width, y: (event.clientY - box.top) / box.height }); } });
 $('screenStage').addEventListener('pointerup', (event) => { const box = canvas.getBoundingClientRect(); window.piperos.touch({ action: 1, x: (event.clientX - box.left) / box.width, y: (event.clientY - box.top) / box.height }); });
-$('firebaseButton').onclick = async () => { const email = window.prompt('Email Firebase'); if (!email) return; const password = window.prompt('Mật khẩu Firebase'); if (!password) return; try { const user = await window.piperos.firebaseLogin(email, password); $('accountState').textContent = user.email; } catch (error) { $('accountState').textContent = error.message; } };
+$('createPcQr').onclick = async () => { try { const result = await window.piperos.createPcQr(); $('pcQrImage').src = result.image; $('pcQrCard').classList.remove('hidden'); $('pcQrStatus').textContent = 'Đang chờ điện thoại quét mã. Mã tự hết hạn sau 5 phút.'; status('Mã QR PC đã sẵn sàng'); } catch (error) { status(error.message, true); } };
+const loginDialog = $('loginDialog');
+function showAccount(user) { $('accountState').textContent = user?.email || 'Chưa đăng nhập Firebase'; $('firebaseButton').textContent = user ? 'Đổi tài khoản' : 'Đăng nhập Firebase'; }
+$('firebaseButton').onclick = () => { $('loginError').textContent = ''; $('firebasePassword').value = ''; loginDialog.showModal(); };
+$('closeLoginDialog').onclick = () => loginDialog.close();
+$('loginForm').addEventListener('submit', async (event) => { event.preventDefault(); $('loginError').textContent = ''; try { const user = await window.piperos.firebaseLogin($('firebaseEmail').value.trim(), $('firebasePassword').value); showAccount(user); loginDialog.close(); } catch (error) { $('loginError').textContent = error.message || 'Không thể đăng nhập Firebase.'; } });
+window.piperos.firebaseRestore().then(showAccount).catch(() => showAccount(null));
 $('startApple').onclick = async () => { try { const result = await window.piperos.appleStart({ name: $('appleName').value.trim(), resolution: $('appleResolution').value, fps: Number($('appleFps').value) }); $('appleStatus').textContent = result.message; } catch (error) { $('appleStatus').textContent = error.message; } };
 window.piperos.on('remote:connected', ({ width, height }) => { canvas.width = width; canvas.height = height; $('viewerEmpty').hidden = true; $('viewerTitle').textContent = `${width} × ${height} · đang kết nối`; status('Đã kết nối'); });
 window.piperos.on('remote:frame', ({ width, height, jpeg }) => { const image = new Image(); image.onload = () => { canvas.width = width; canvas.height = height; context.drawImage(image, 0, 0, width, height); }; image.src = `data:image/jpeg;base64,${jpeg}`; });
