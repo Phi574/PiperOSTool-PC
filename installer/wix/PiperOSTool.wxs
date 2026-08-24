@@ -6,7 +6,7 @@
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="INSTALLFOLDER" Name="PiperOS Tool">
         <Component Id="DesktopApp" Guid="*">
-          <File Id="PiperOSExe" Source="..\..\release\win-unpacked\PiperOS Tool.exe" KeyPath="yes" />
+          <File Id="PiperOSExe" Source="release\win-unpacked\PiperOS Tool.exe" KeyPath="yes" />
         </Component>
       </Directory>
     </StandardDirectory>
