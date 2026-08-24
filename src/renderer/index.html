@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PiperOS Tool</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><img src="../../resources/logo.png" onerror="this.hidden=true" /><span>PiperOS Tool</span></div>
+      <button class="nav-item active" data-page="remote">View Remote</button>
+      <button class="nav-item" data-page="apple">Chiếu màn hình Apple</button>
+      <div class="side-fill"></div>
+      <div class="account" id="accountState">Chưa đăng nhập Firebase</div>
+      <button class="link-button" id="firebaseButton">Thiết lập Firebase</button>
+    </aside>
+    <main class="content">
+      <section class="page active" id="remotePage">
+        <header class="page-header">
+          <div><h1>PiperOS View Remote</h1><p>Kết nối Android qua mạng cục bộ, QR, mã ghép nối hoặc USB Type-C.</p></div>
+          <div class="status-pill" id="remoteStatus">Sẵn sàng</div>
+        </header>
+        <div class="remote-layout">
+          <section class="panel connection-panel">
+            <h2>Kết nối thiết bị Android</h2>
+            <div class="segmented" id="connectionMode">
+              <button class="selected" data-mode="lan">Cùng mạng</button>
+              <button data-mode="code">Mã 6 số</button>
+              <button data-mode="qr">QR</button>
+              <button data-mode="usb">USB Type-C</button>
+            </div>
+            <div id="lanControls" class="mode-controls">
+              <button class="primary" id="scanLan">Quét thiết bị</button>
+              <div class="endpoint-list" id="endpointList"><p class="muted">Chưa quét thiết bị nào.</p></div>
+            </div>
+            <div id="codeControls" class="mode-controls hidden">
+              <label>Mã ghép nối<input id="pairCode" maxlength="6" inputmode="numeric" placeholder="000000" /></label>
+              <button class="primary" id="connectCode">Tìm và kết nối</button>
+            </div>
+            <div id="qrControls" class="mode-controls hidden">
+              <label>Nội dung mã QR<input id="qrUri" placeholder="piperos://remote?host=..." /></label>
+              <button class="primary" id="connectQr">Kết nối QR</button>
+            </div>
+            <div id="usbControls" class="mode-controls hidden">
+              <button class="secondary" id="scanUsb">Quét ADB qua USB</button>
+              <label>Thiết bị<select id="usbDevices"><option>Chưa quét</option></select></label>
+              <label>Cổng View Remote<input id="usbPort" inputmode="numeric" placeholder="Ví dụ: 39211" /></label>
+              <label>Khóa phiên<input id="usbCredential" placeholder="Mã QR, token hoặc mã 6 số" /></label>
+              <select id="usbMethod"><option value="QR">QR token</option><option value="CODE">Mã 6 số</option><option value="LAN">Phiên LAN</option></select>
+              <button class="primary" id="connectUsb">Kết nối USB</button>
+              <p class="hint">Bật Chia sẻ màn hình trong app Android trước, sau đó dùng cổng và khóa hiển thị trong QR/mã phiên.</p>
+            </div>
+            <div class="quality"><span>Chất lượng</span><select id="qualityWidth"><option value="1280">720p</option><option value="1920" selected>1080p</option><option value="2560">1440p</option></select><select id="qualityFps"><option value="24">24 FPS</option><option value="30">30 FPS</option><option value="60" selected>60 FPS</option></select></div>
+          </section>
+          <section class="viewer-panel">
+            <div class="viewer-toolbar"><span id="viewerTitle">Chưa có phiên xem</span><div><button class="icon-button" id="sendBack" title="Quay lại">←</button><button class="icon-button" id="sendHome" title="Trang chủ">⌂</button><button class="danger-button" id="disconnect">Ngắt kết nối</button></div></div>
+            <div class="screen-stage" id="screenStage"><canvas id="screenCanvas" width="1280" height="720"></canvas><p id="viewerEmpty">Kết nối một thiết bị để xem và điều khiển màn hình.</p></div>
+          </section>
+        </div>
+      </section>
+      <section class="page" id="applePage">
+        <header class="page-header"><div><h1>Chiếu màn hình Apple</h1><p>Receiver cho iPhone, iPad và macOS qua AirPlay/RAOP trong cùng Wi-Fi.</p></div><div class="status-pill">Native receiver</div></header>
+        <section class="panel apple-panel">
+          <h2>PiperOS AirPlay Receiver</h2>
+          <p>Windows receiver được đóng gói như một native companion. Khi đã cài thành phần receiver, tên bên dưới sẽ hiện trong Phản chiếu màn hình trên iPhone/iPad/macOS.</p>
+          <label>Tên thiết bị<input id="appleName" value="PiperOS View Remote PC" /></label>
+          <div class="quality"><span>Độ phân giải tối đa</span><select id="appleResolution"><option>1080p</option><option>1440p</option><option>Native</option></select><select id="appleFps"><option>30 FPS</option><option selected>60 FPS</option><option>120 FPS</option></select></div>
+          <button class="primary" id="startApple">Khởi động receiver</button>
+          <p class="hint" id="appleStatus">Cần cài PiperOS AirPlay Receiver native từ gói MSI để phát luồng video/audio thực tế.</p>
+        </section>
+      </section>
+    </main>
+  </div>
+  <script src="renderer.js"></script>
+</body>
+</html>

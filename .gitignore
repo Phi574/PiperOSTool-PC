@@ -1,0 +1,8 @@
+node_modules/
+release/
+dist/
+.firebase-config.js
+*.log
+*.pfx
+*.msi
+*.exe
