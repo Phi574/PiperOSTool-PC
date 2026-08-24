@@ -16,7 +16,7 @@
 
 ## Build EXE và MSI
 
-Yêu cầu: Node.js LTS, npm, Android platform-tools cho USB; WiX Toolset v4 nếu cần MSI.
+Yêu cầu: Node.js LTS, npm, Android platform-tools cho USB; WiX CLI nếu cần MSI (`winget install --id WiXToolset.WiXCLI --exact`).
 
 ```powershell
 npm install
