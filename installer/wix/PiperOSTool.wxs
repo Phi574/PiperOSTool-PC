@@ -1,15 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
-  <Package Name="PiperOS Tool" Manufacturer="Phi574" Version="3.2.3.0" UpgradeCode="13D7191F-FA6B-4B5E-B4B4-3DCB37A430D3" Language="1033">
+  <Package Name="PiperOS Tool" Manufacturer="Phi574" Version="3.2.5.0" UpgradeCode="13D7191F-FA6B-4B5E-B4B4-3DCB37A430D3" Language="1033">
     <MajorUpgrade DowngradeErrorMessage="A newer PiperOS Tool version is already installed." />
     <MediaTemplate EmbedCab="yes" />
-    <StandardDirectory Id="ProgramFiles64Folder">
-      <Directory Id="INSTALLFOLDER" Name="PiperOS Tool">
-        <Component Id="DesktopApp" Guid="*">
-          <File Id="PiperOSExe" Source="release\win-unpacked\PiperOS Tool.exe" KeyPath="yes" />
-        </Component>
-      </Directory>
-    </StandardDirectory>
-    <Feature Id="MainFeature" Title="PiperOS Tool" Level="1"><ComponentRef Id="DesktopApp" /></Feature>
+    <Feature Id="MainFeature" Title="PiperOS Tool" Level="1"><ComponentGroupRef Id="PiperPayload" /></Feature>
   </Package>
 </Wix>

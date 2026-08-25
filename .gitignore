@@ -6,3 +6,9 @@ dist/
 *.pfx
 *.msi
 *.exe
+
+# Generated WiX manifest embeds absolute local source paths.
+installer/wix/PiperOSTool.Payload.wxs
+
+# Downloaded AirPlay runtime is packaged locally by the MSI pipeline.
+resources/airplay/uxplay/

@@ -37,6 +37,7 @@ function setupClient() {
   client.on('frame', (value) => send('remote:frame', value));
   client.on('audio-config', (value) => send('remote:audio-config', value));
   client.on('audio', (value) => send('remote:audio', value));
+  client.on('device-info', (value) => send('remote:device-info', value));
   client.on('error', (message) => send('remote:error', message));
   client.on('closed', () => send('remote:closed'));
 }

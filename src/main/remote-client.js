@@ -145,6 +145,14 @@ class PiperRemoteClient extends EventEmitter {
         this.reader.take(5);
         const pcm = this.reader.take(size);
         this.emit('audio', pcm.toString('base64'));
+      } else if (kind === 7) {
+        if (this.reader.buffer.length < 5) return;
+        const size = this.reader.buffer.readInt32BE(1);
+        if (size <= 0 || size > 16_384) { this.emit('error', 'Thông tin thiết bị không hợp lệ.'); this.close(); return; }
+        if (this.reader.buffer.length < 5 + size) return;
+        this.reader.take(5);
+        try { this.emit('device-info', JSON.parse(this.reader.take(size).toString('utf8'))); }
+        catch { this.emit('error', 'Không thể đọc thông tin thiết bị.'); }
       } else { this.emit('error', 'Giao thức View Remote không được hỗ trợ.'); this.close(); return; }
     }
   }

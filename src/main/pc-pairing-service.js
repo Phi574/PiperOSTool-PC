@@ -22,7 +22,7 @@ class PcPairingService {
     this.server = net.createServer((socket) => this.handle(socket));
     await new Promise((resolve, reject) => {
       this.server.once('error', reject);
-      this.server.listen(0, '0.0.0.0', () => { this.server.off('error', reject); resolve(); });
+      this.server.listen(39778, '0.0.0.0', () => { this.server.off('error', reject); resolve(); });
     });
     const port = this.server.address().port;
     this.timeout = setTimeout(() => this.stop(), 5 * 60_000);
@@ -41,7 +41,7 @@ class PcPairingService {
       if (!host) return socket.destroy();
       socket.end('OK\n');
       this.stop();
-      this.onPaired({ host, port: Number(port), credential, method: 'QR' });
+      Promise.resolve(this.onPaired({ host, port: Number(port), credential, method: 'QR' })).catch(() => {});
     });
     socket.on('error', () => {});
   }
