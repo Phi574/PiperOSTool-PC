@@ -37,6 +37,8 @@ bao giờ đưa service account, khóa quản trị hay `google-services.json` v
 `npm run dist` tạo NSIS `.exe` và portable `.exe` trong `release/`. `npm run msi`
 đóng gói thư mục `win-unpacked`, receiver AirPlay và dependency native thành MSI sau
 khi WiX được cài. Bản MSI lớn hơn vì mang theo decoder, audio pipeline và mDNS.
+MSI `3.2.5.1` có wizard chọn thư mục, thông báo GPLv3, tiến trình cài đặt và shortcut
+trên Desktop/Start Menu. Vì cài vào `Program Files`, Windows sẽ yêu cầu UAC.
 
 ## USB Type-C và driver
 

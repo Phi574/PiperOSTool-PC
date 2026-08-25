@@ -40,7 +40,12 @@ foreach ($file in $files) {
   $fileId = Wix-Id "file_$relative"
   $componentIds.Add($componentId)
   $lines.Add("      <Component Id=`"$componentId`" Directory=`"$directoryId`" Guid=`"*`">")
-  $lines.Add("        <File Id=`"$fileId`" Source=`"$(Escape-Xml $file.FullName)`" KeyPath=`"yes`" />")
+  $lines.Add("        <File Id=`"$fileId`" Source=`"$(Escape-Xml $file.FullName)`" KeyPath=`"yes`">")
+  if ($relative -eq 'PiperOS Tool.exe') {
+    $lines.Add('          <Shortcut Id="PiperOSDesktopShortcut" Directory="DesktopFolder" Name="PiperOS Tool" Description="PiperOS View Remote for Windows" WorkingDirectory="INSTALLFOLDER" Advertise="no" />')
+    $lines.Add('          <Shortcut Id="PiperOSStartMenuShortcut" Directory="ProgramMenuFolder" Name="PiperOS Tool" Description="PiperOS View Remote for Windows" WorkingDirectory="INSTALLFOLDER" Advertise="no" />')
+  }
+  $lines.Add('        </File>')
   $lines.Add('      </Component>')
 }
 $lines.Add('    </DirectoryRef>')

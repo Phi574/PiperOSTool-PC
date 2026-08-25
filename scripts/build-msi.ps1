@@ -14,5 +14,5 @@ try {
   if (-not $wixPath) {
     throw 'WiX CLI is required for MSI. Install it with: winget install --id WiXToolset.WiXCLI --exact'
   }
-  & $wixPath build installer/wix/PiperOSTool.wxs installer/wix/PiperOSTool.Payload.wxs -arch x64 -o release/PiperOS-Tool-3.2.5-beta-x64.msi
+  & $wixPath build installer/wix/PiperOSTool.wxs installer/wix/PiperOSTool.Payload.wxs -ext WixToolset.UI.wixext -arch x64 -o release/PiperOS-Tool-3.2.5-beta-x64.msi
 } finally { Pop-Location }
