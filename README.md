@@ -2,10 +2,36 @@
 
 <p align="center">Windows companion cho <a href="https://github.com/Phi574/PiperOSTool-Android">PiperOS Tool Android</a>.</p>
 
-## 3.2.5.beta
+## 3.3.0.beta · PiperOS Tool PC V2
 
-- **PiperOS View Remote:** nhận ảnh JPEG và âm thanh PCM từ Android qua cùng giao
-  thức `PIPER_REMOTE_2`; hỗ trợ LAN discovery, QR, mã 6 số và USB Type-C qua ADB.
+- Làm mới toàn bộ bố cục theo dạng thẻ gọn, bo góc và màu sắc đồng bộ với PiperOS
+  Tool Android; giao diện tự chuyển sang bố cục dọc khi cửa sổ hẹp.
+- Bỏ thanh menu File/Edit/View/Window/Help của Electron. Các thao tác dùng thường
+  xuyên như cài đặt luồng, Back/Home, toàn màn hình và ngắt kết nối nằm ngay trong
+  giao diện.
+- Tách tỷ lệ hình chiếu khỏi kích thước cửa sổ, giữ đúng tỷ lệ ảnh và ánh xạ thao
+  tác chạm vào vùng hình thật khi đổi dọc/ngang hoặc đổi kích thước cửa sổ.
+- Kiểm tra bộ giải mã theo cả hai hướng màn hình; tự kết nối lại bằng JPEG tương
+  thích nếu H.264/HEVC không khởi tạo được trên GPU của PC.
+- Tăng độ ổn định khi kết nối lại nhanh, bỏ sự kiện đến từ socket phiên cũ, giới
+  hạn thời gian bắt tay và dữ liệu đệm; giới hạn hàng chờ âm thanh để tránh trễ kéo
+  dài sau khi mạng khựng.
+- Thêm đường vẽ Canvas 2D dự phòng khi WebGL không khả dụng; giữ pipeline giải mã
+  WebCodecs + WebGL/ANGLE D3D11 khi GPU hỗ trợ.
+
+- Piper Remote 3 có ba pipeline: JPEG tương thích, MediaCodec H.264 phần cứng và
+  MediaCodec HEVC phần cứng.
+- H.264/HEVC được giải mã bằng WebCodecs ưu tiên hardware, sau đó render bằng
+  WebGL/ANGLE trên GPU (D3D11 trên Windows) thay vì Canvas 2D.
+- Bộ chọn codec nằm tại nút cài đặt của khung chiếu; H.264 là mặc định an toàn.
+- Hàng đợi độ trễ thấp tự bỏ frame delta cũ khi GPU chậm, giữ hình trực tiếp thay
+  vì tích lũy độ trễ.
+- Thanh trạng thái dùng telemetry thực: kích thước frame decoder đang render, FPS
+  đã render, Mbps nhận trên đường truyền và độ trễ từ dấu thời gian Android tới lúc
+  frame xuất hiện trên PC. Các số này không lấy từ lựa chọn chất lượng mong muốn.
+
+- **PiperOS View Remote:** nhận JPEG/H.264/HEVC và âm thanh PCM từ Android qua giao
+  thức `PIPER_REMOTE_4`; hỗ trợ LAN discovery, QR, mã 6 số và USB Type-C qua ADB.
   Nút toàn màn hình phóng đúng bề mặt hình chiếu; ảnh giữ đúng tỉ lệ và dùng toàn bộ
   vùng xem khả dụng.
 - **QR PC:** PC tự tạo QR một lần trên cổng cục bộ ổn định, điện thoại quét trong
@@ -37,7 +63,7 @@ bao giờ đưa service account, khóa quản trị hay `google-services.json` v
 `npm run dist` tạo NSIS `.exe` và portable `.exe` trong `release/`. `npm run msi`
 đóng gói thư mục `win-unpacked`, receiver AirPlay và dependency native thành MSI sau
 khi WiX được cài. Bản MSI lớn hơn vì mang theo decoder, audio pipeline và mDNS.
-MSI `3.2.5.1` có wizard chọn thư mục, thông báo GPLv3, tiến trình cài đặt và shortcut
+MSI `3.3.0.1` có wizard chọn thư mục, thông báo GPLv3, tiến trình cài đặt và shortcut
 trên Desktop/Start Menu. Vì cài vào `Program Files`, Windows sẽ yêu cầu UAC.
 
 ## USB Type-C và driver

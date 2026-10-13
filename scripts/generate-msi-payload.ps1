@@ -7,7 +7,16 @@ $ErrorActionPreference = 'Stop'
 if (-not (Test-Path $Source)) { throw "Missing Electron payload: $Source" }
 
 function Escape-Xml([string]$Value) { [System.Security.SecurityElement]::Escape($Value) }
-function Wix-Id([string]$Value) { 'id_' + (($Value -replace '[^A-Za-z0-9_]', '_').Trim('_')) }
+function Wix-Id([string]$Value) {
+  # Full relative paths can exceed WiX's 72-character identifier limit. Stable
+  # short hashes keep generated component/file IDs unique without path-length warnings.
+  $sha = [System.Security.Cryptography.SHA256]::Create()
+  try {
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes($Value)
+    $hash = [System.BitConverter]::ToString($sha.ComputeHash($bytes)).Replace('-', '').Substring(0, 24)
+    return "id_$hash"
+  } finally { $sha.Dispose() }
+}
 
 $root = (Resolve-Path $Source).Path
 $files = Get-ChildItem $root -File -Recurse | Sort-Object FullName

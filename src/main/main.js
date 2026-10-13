@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, Menu, ipcMain, shell } = require('electron');
 const path = require('node:path');
 const { PiperRemoteClient, discoverRemote } = require('./remote-client');
 const adb = require('./adb-bridge');
@@ -13,6 +13,7 @@ let forwarded;
 let firebase;
 let appleReceiver;
 let pcPairing;
+let pcPairingQuality = { width: 1920, fps: 60, stream: 1 };
 
 function send(channel, payload) { windowRef?.webContents.send(channel, payload); }
 
@@ -20,9 +21,9 @@ function createWindow() {
   windowRef = new BrowserWindow({
     width: 1360,
     height: 860,
-    minWidth: 1040,
-    minHeight: 700,
-    backgroundColor: '#f7f8fa',
+    minWidth: 900,
+    minHeight: 620,
+    backgroundColor: '#f4f6fa',
     title: 'PiperOS Tool',
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false }
   });
@@ -38,16 +39,29 @@ function setupClient() {
   client.on('audio-config', (value) => send('remote:audio-config', value));
   client.on('audio', (value) => send('remote:audio', value));
   client.on('device-info', (value) => send('remote:device-info', value));
+  client.on('video-config', (value) => send('remote:video-config', value));
+  client.on('video-frame', (value) => send('remote:video-frame', value));
   client.on('error', (message) => send('remote:error', message));
   client.on('closed', () => send('remote:closed'));
 }
 
 app.whenReady().then(() => {
+  // All commonly used actions live in the in-app toolbar; hide Electron's
+  // placeholder File/Edit/View/Window/Help menu strip.
+  Menu.setApplicationMenu(null);
   firebase = new FirebaseService(app.getPath('userData'), app.isPackaged ? path.join(process.resourcesPath, 'resources') : path.join(process.cwd(), 'resources'));
   appleReceiver = new AppleReceiver(app.isPackaged ? path.join(process.resourcesPath, 'resources') : path.join(process.cwd(), 'resources'));
   setupClient();
   pcPairing = new PcPairingService(async (endpoint) => {
-    try { await client.connect(endpoint, `PiperOS PC (${require('node:os').hostname()})`, 1920, 60); }
+    try {
+      await client.connect(
+        endpoint,
+        `PiperOS PC (${require('node:os').hostname()})`,
+        pcPairingQuality.width,
+        pcPairingQuality.fps,
+        pcPairingQuality.stream
+      );
+    }
     catch (error) { send('remote:error', error.message); }
   });
   createWindow();
@@ -62,7 +76,7 @@ app.on('before-quit', async () => {
 
 ipcMain.handle('remote:discover', (_, code) => discoverRemote(code?.trim() || null));
 ipcMain.handle('remote:connect', async (_, endpoint, quality) => {
-  await client.connect(endpoint, `PiperOS PC (${require('node:os').hostname()})`, quality.width, quality.fps);
+  await client.connect(endpoint, `PiperOS PC (${require('node:os').hostname()})`, quality.width, quality.fps, quality.stream);
   return true;
 });
 ipcMain.handle('remote:disconnect', async () => { client.close(); return true; });
@@ -78,14 +92,20 @@ ipcMain.handle('usb:connect', async (_, serial, quality) => {
     { ...tunnel, credential: 'piperos-usb-adb-v1', method: 'USB' },
     `PiperOS PC USB (${require('node:os').hostname()})`,
     quality.width,
-    quality.fps
+    quality.fps,
+    quality.stream
   );
   return tunnel;
 });
 ipcMain.handle('firebase:login', (_, email, password) => firebase.login(email, password));
 ipcMain.handle('firebase:logout', () => firebase.logout());
 ipcMain.handle('firebase:restore', () => firebase.restore());
-ipcMain.handle('remote:pc-qr', async () => {
+ipcMain.handle('remote:pc-qr', async (_, quality) => {
+  pcPairingQuality = {
+    width: Number(quality?.width) || 1920,
+    fps: Number(quality?.fps) || 60,
+    stream: Number.isInteger(quality?.stream) ? quality.stream : 1
+  };
   const pairing = await pcPairing.start();
   return { ...pairing, image: await QRCode.toDataURL(pairing.uri, { width: 360, margin: 2 }) };
 });

@@ -12,7 +12,7 @@ contextBridge.exposeInMainWorld('piperos', {
   firebaseLogin: (email, password) => ipcRenderer.invoke('firebase:login', email, password),
   firebaseLogout: () => ipcRenderer.invoke('firebase:logout'),
   firebaseRestore: () => ipcRenderer.invoke('firebase:restore'),
-  createPcQr: () => ipcRenderer.invoke('remote:pc-qr'),
+  createPcQr: (quality) => ipcRenderer.invoke('remote:pc-qr', quality),
   appleStart: (settings) => ipcRenderer.invoke('apple:start', settings),
   appleStop: () => ipcRenderer.invoke('apple:stop'),
   fullscreen: (enabled) => ipcRenderer.invoke('window:fullscreen', enabled),

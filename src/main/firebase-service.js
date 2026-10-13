@@ -65,7 +65,7 @@ class FirebaseService {
     await setDoc(doc(getFirestore(this.app), 'users', user.uid, 'deviceSessions', sessionId), {
       sessionId, deviceId: this.deviceId(), deviceName: `${os.hostname()} (Windows)`,
       manufacturer: 'PC', model: os.hostname(), platform: 'Windows', windowsVersion: os.release(), architecture: os.arch(),
-      app: 'PiperOS Tool PC', appVersion: '3.2.4.beta', loginAt: now, lastSeenAt: now, updatedAt: now,
+      app: 'PiperOS Tool PC', appVersion: '3.3.0.beta', loginAt: now, lastSeenAt: now, updatedAt: now,
       active: true, revoked: false, status: 'active'
     }, { merge: true });
   }

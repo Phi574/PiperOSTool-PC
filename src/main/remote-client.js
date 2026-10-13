@@ -2,7 +2,7 @@ const dgram = require('node:dgram');
 const net = require('node:net');
 const { EventEmitter } = require('node:events');
 
-const MAGIC = 'PIPER_REMOTE_2';
+const MAGIC = 'PIPER_REMOTE_4';
 const DISCOVERY_PORT = 39776;
 const DISCOVER = 'PIPER_REMOTE_DISCOVER';
 const CODE_LOOKUP = 'PIPER_REMOTE_CODE|';
@@ -15,9 +15,14 @@ function writeUtf(socket, value) {
   socket.write(Buffer.concat([header, payload]));
 }
 
+const MAX_READER_BUFFER = 10 * 1024 * 1024;
+
 class Reader {
   constructor() { this.buffer = Buffer.alloc(0); }
-  push(chunk) { this.buffer = Buffer.concat([this.buffer, chunk]); }
+  push(chunk) {
+    if (this.buffer.length + chunk.length > MAX_READER_BUFFER) throw new Error('Dữ liệu luồng vượt giới hạn an toàn.');
+    this.buffer = this.buffer.length ? Buffer.concat([this.buffer, chunk]) : chunk;
+  }
   take(length) {
     if (this.buffer.length < length) return null;
     const value = this.buffer.subarray(0, length);
@@ -25,6 +30,7 @@ class Reader {
     return value;
   }
   int() { const raw = this.take(4); return raw && raw.readInt32BE(0); }
+  long() { const raw = this.take(8); return raw && raw.readBigInt64BE(0); }
   bool() { const raw = this.take(1); return raw && raw[0] !== 0; }
   utf() {
     if (this.buffer.length < 2) return null;
@@ -40,7 +46,13 @@ async function discoverRemote(code = null, timeoutMs = 2400) {
     const found = new Map();
     const socket = dgram.createSocket('udp4');
     const message = Buffer.from(code ? `${CODE_LOOKUP}${code}` : DISCOVER);
-    const finish = () => { socket.close(); resolve([...found.values()]); };
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      try { socket.close(); } catch { /* Socket can already be closed after an error. */ }
+      resolve([...found.values()]);
+    };
     socket.on('message', (raw, remote) => {
       const value = raw.toString('utf8');
       if (!value.startsWith(HOST_REPLY)) return;
@@ -55,7 +67,8 @@ async function discoverRemote(code = null, timeoutMs = 2400) {
     socket.bind(() => {
       socket.setBroadcast(true);
       socket.send(message, DISCOVERY_PORT, '255.255.255.255');
-      setTimeout(finish, timeoutMs);
+      const timer = setTimeout(finish, timeoutMs);
+      timer.unref?.();
     });
     socket.on('error', finish);
   });
@@ -68,37 +81,68 @@ class PiperRemoteClient extends EventEmitter {
     this.reader = new Reader();
     this.state = 'idle';
     this.phase = 'handshake';
+    this.handshakeTimer = null;
   }
 
-  async connect(endpoint, displayName, width, fps) {
+  async connect(endpoint, displayName, width, fps, stream = 1) {
     this.close();
+    const socket = net.createConnection({ host: endpoint.host, port: endpoint.port });
+    this.socket = socket;
     this.state = 'connecting';
     this.phase = 'handshake';
-    this.socket = net.createConnection({ host: endpoint.host, port: endpoint.port });
-    this.socket.setNoDelay(true);
-    this.socket.setKeepAlive(true, 10_000);
-    this.socket.on('data', (chunk) => this.onData(chunk));
-    this.socket.on('error', (error) => this.emit('error', error.message));
-    this.socket.on('close', () => {
-      if (this.state !== 'idle') this.emit('closed');
+    socket.setNoDelay(true);
+    socket.setKeepAlive(true, 10_000);
+    socket.on('data', (chunk) => {
+      if (socket !== this.socket) return;
+      try { this.onData(chunk); } catch (error) { this.emit('error', error.message); this.close(); }
+    });
+    socket.on('error', (error) => {
+      if (socket !== this.socket) return;
+      this.emit('error', error.message);
+    });
+    socket.on('close', () => {
+      if (socket !== this.socket) return;
+      const wasActive = this.state !== 'idle';
       this.state = 'idle';
+      this.phase = 'handshake';
+      clearTimeout(this.handshakeTimer);
+      this.handshakeTimer = null;
+      this.socket = null;
+      this.reader = new Reader();
+      if (wasActive) this.emit('closed');
     });
-    await new Promise((resolve, reject) => {
-      this.socket.once('connect', resolve);
-      this.socket.once('error', reject);
-    });
-    writeUtf(this.socket, MAGIC);
-    writeUtf(this.socket, endpoint.method || 'LAN');
-    writeUtf(this.socket, endpoint.credential || endpoint.sessionId);
-    writeUtf(this.socket, displayName);
-    const settings = Buffer.allocUnsafe(8);
-    settings.writeInt32BE(width, 0);
-    settings.writeInt32BE(fps, 4);
-    this.socket.write(settings);
+    this.handshakeTimer = setTimeout(() => {
+      if (socket === this.socket && this.state !== 'connected') {
+        this.emit('error', 'Thiết bị không phản hồi bước xác nhận kết nối.');
+        this.close();
+      }
+    }, 15_000);
+    try {
+      await new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('Hết thời gian chờ kết nối thiết bị.')), 12_000);
+        const onConnect = () => { clearTimeout(timer); socket.removeListener('error', onError); resolve(); };
+        const onError = (error) => { clearTimeout(timer); socket.removeListener('connect', onConnect); reject(error); };
+        socket.once('connect', onConnect);
+        socket.once('error', onError);
+      });
+      if (socket !== this.socket) throw new Error('Kết nối đã bị thay thế.');
+      writeUtf(socket, MAGIC);
+      writeUtf(socket, endpoint.method || 'LAN');
+      writeUtf(socket, endpoint.credential || endpoint.sessionId || '');
+      writeUtf(socket, displayName);
+      const settings = Buffer.allocUnsafe(12);
+      settings.writeInt32BE(width, 0);
+      settings.writeInt32BE(fps, 4);
+      settings.writeInt32BE(stream, 8);
+      socket.write(settings);
+    } catch (error) {
+      if (socket === this.socket) this.close();
+      throw error;
+    }
   }
 
   onData(chunk) {
-    this.reader.push(chunk);
+        this.reader.push(chunk);
     while (true) {
       if (this.phase === 'handshake') {
         if (this.reader.buffer.length < 1) return;
@@ -113,25 +157,29 @@ class PiperRemoteClient extends EventEmitter {
           this.close();
           return;
         }
-        if (this.reader.buffer.length < 9) return;
+        if (this.reader.buffer.length < 13) return;
         this.reader.take(1);
         const width = this.reader.int(); const height = this.reader.int();
+        const stream = this.reader.int();
         this.phase = 'stream'; this.state = 'connected';
-        this.emit('connected', { width, height });
+        clearTimeout(this.handshakeTimer);
+        this.handshakeTimer = null;
+        this.emit('connected', { width, height, stream });
         continue;
       }
       if (this.reader.buffer.length < 1) return;
       const kind = this.reader.buffer[0];
       if (kind === 1) {
-        if (this.reader.buffer.length < 13) return;
+        if (this.reader.buffer.length < 21) return;
         const width = this.reader.buffer.readInt32BE(1);
         const height = this.reader.buffer.readInt32BE(5);
-        const size = this.reader.buffer.readInt32BE(9);
+        const sentAtMs = this.reader.buffer.readBigInt64BE(9);
+        const size = this.reader.buffer.readInt32BE(17);
         if (size <= 0 || size > 8_000_000) { this.emit('error', 'Khung hình không hợp lệ.'); this.close(); return; }
-        if (this.reader.buffer.length < 13 + size) return;
-        this.reader.take(13);
+        if (this.reader.buffer.length < 21 + size) return;
+        this.reader.take(21);
         const jpeg = this.reader.take(size);
-        this.emit('frame', { width, height, jpeg: jpeg.toString('base64') });
+        this.emit('frame', { width, height, sentAtMs: sentAtMs.toString(), jpeg });
       } else if (kind === 5) {
         if (this.reader.buffer.length < 9) return;
         this.reader.take(1);
@@ -153,6 +201,32 @@ class PiperRemoteClient extends EventEmitter {
         this.reader.take(5);
         try { this.emit('device-info', JSON.parse(this.reader.take(size).toString('utf8'))); }
         catch { this.emit('error', 'Không thể đọc thông tin thiết bị.'); }
+      } else if (kind === 8) {
+        if (this.reader.buffer.length < 21) return;
+        const stream = this.reader.buffer.readInt32BE(1);
+        const width = this.reader.buffer.readInt32BE(5);
+        const height = this.reader.buffer.readInt32BE(9);
+        const fps = this.reader.buffer.readInt32BE(13);
+        const size = this.reader.buffer.readInt32BE(17);
+        if (size < 0 || size > 1_048_576) { this.emit('error', 'Cấu hình video không hợp lệ.'); this.close(); return; }
+        if (this.reader.buffer.length < 21 + size) return;
+        this.reader.take(21);
+        this.emit('video-config', { stream, width, height, fps, codecData: this.reader.take(size) });
+      } else if (kind === 9) {
+        if (this.reader.buffer.length < 25) return;
+        const flags = this.reader.buffer.readInt32BE(1);
+        const timestampUs = this.reader.buffer.readBigInt64BE(5);
+        const sentAtMs = this.reader.buffer.readBigInt64BE(13);
+        const size = this.reader.buffer.readInt32BE(21);
+        if (size <= 0 || size > 4_194_304) { this.emit('error', 'Gói video không hợp lệ.'); this.close(); return; }
+        if (this.reader.buffer.length < 25 + size) return;
+        this.reader.take(25);
+        this.emit('video-frame', {
+          flags,
+          timestampUs: timestampUs.toString(),
+          sentAtMs: sentAtMs.toString(),
+          data: this.reader.take(size)
+        });
       } else { this.emit('error', 'Giao thức View Remote không được hỗ trợ.'); this.close(); return; }
     }
   }
@@ -165,7 +239,18 @@ class PiperRemoteClient extends EventEmitter {
     this.socket.write(packet);
   }
   sendKey(kind) { if (this.socket?.writable) this.socket.write(Buffer.from([kind])); }
-  close() { this.state = 'idle'; this.socket?.destroy(); this.socket = null; this.reader = new Reader(); }
+  close() {
+    const wasActive = this.state !== 'idle';
+    this.state = 'idle';
+    this.phase = 'handshake';
+    clearTimeout(this.handshakeTimer);
+    this.handshakeTimer = null;
+    const socket = this.socket;
+    this.socket = null;
+    this.reader = new Reader();
+    socket?.destroy();
+    if (wasActive) this.emit('closed');
+  }
 }
 
 module.exports = { PiperRemoteClient, discoverRemote };

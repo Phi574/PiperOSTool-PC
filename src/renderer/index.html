@@ -9,7 +9,7 @@
 <body>
   <div class="app-shell">
     <aside class="sidebar">
-      <div class="brand"><img src="logo.png" onerror="this.hidden=true" /><span>PiperOS Tool</span></div>
+      <div class="brand"><img src="logo.png" onerror="this.hidden=true" /><span>PiperOS Tool<small>PC · V2</small></span></div>
       <button class="nav-item active" data-page="remote">View Remote</button>
       <button class="nav-item" data-page="apple">Chiếu màn hình Apple</button>
       <div class="side-fill"></div>
@@ -19,7 +19,7 @@
     <main class="content">
       <section class="page active" id="remotePage">
         <header class="page-header">
-          <div><h1>PiperOS View Remote</h1><p>Kết nối Android qua mạng cục bộ, QR, mã ghép nối hoặc USB Type-C.</p></div>
+          <div><h1>PiperOS View Remote</h1><p>Chiếu và điều khiển Android qua mạng cục bộ, QR, mã ghép nối hoặc USB Type-C.</p></div>
           <div class="status-pill" id="remoteStatus">Sẵn sàng</div>
         </header>
         <div class="remote-layout">
@@ -54,7 +54,7 @@
             <div class="quality"><span>Chất lượng</span><select id="qualityWidth"><option value="1280">720p</option><option value="1920" selected>1080p</option><option value="2560">1440p</option></select><select id="qualityFps"><option value="24">24 FPS</option><option value="30">30 FPS</option><option value="60" selected>60 FPS</option></select></div>
           </section>
           <section class="viewer-panel">
-            <div class="viewer-toolbar"><div><strong id="viewerTitle">Chưa có phiên xem</strong><small id="deviceSummary">Chưa nhận thông tin thiết bị</small></div><div><button class="icon-button" id="sendBack" title="Quay lại">←</button><button class="icon-button" id="sendHome" title="Trang chủ">⌂</button><button class="icon-button" id="toggleFullscreen" title="Toàn màn hình" aria-label="Toàn màn hình">⛶</button><button class="danger-button" id="disconnect">Ngắt kết nối</button></div></div>
+            <div class="viewer-toolbar"><div><strong id="viewerTitle">Chưa có phiên xem</strong><small id="streamStats">-- × -- thực · -- FPS thực · -- Mbps · -- ms độ trễ</small><small id="deviceSummary">Chưa nhận thông tin thiết bị</small></div><div><button class="icon-button" id="openStreamSettings" title="Cài đặt luồng">⚙</button><button class="icon-button" id="sendBack" title="Quay lại">←</button><button class="icon-button" id="sendHome" title="Trang chủ">⌂</button><button class="icon-button" id="toggleFullscreen" title="Toàn màn hình" aria-label="Toàn màn hình">⛶</button><button class="danger-button" id="disconnect">Ngắt kết nối</button></div></div>
             <div class="screen-stage" id="screenStage"><canvas id="screenCanvas" width="1280" height="720"></canvas><p id="viewerEmpty">Kết nối một thiết bị để xem và điều khiển màn hình.</p></div>
           </section>
         </div>
@@ -73,6 +73,8 @@
     </main>
   </div>
   <dialog id="loginDialog" class="login-dialog"><form id="loginForm"><button class="dialog-close" id="closeLoginDialog" type="button" aria-label="Đóng">×</button><h2>Đăng nhập PiperOS</h2><p>Phiên PC sẽ hiện trong danh sách thiết bị đang đăng nhập.</p><label>Email<input id="firebaseEmail" type="email" autocomplete="username" required /></label><label>Mật khẩu<input id="firebasePassword" type="password" autocomplete="current-password" required /></label><p id="loginError" class="error-text"></p><button class="primary" type="submit">Đăng nhập</button></form></dialog>
+  <dialog id="streamDialog" class="login-dialog"><form id="streamForm"><button class="dialog-close" id="closeStreamDialog" type="button" aria-label="Đóng">×</button><h2>Cài đặt luồng video</h2><p>H.264 và HEVC dùng MediaCodec phần cứng trên Android, WebCodecs + WebGL/ANGLE D3D11 trên PC.</p><div class="stream-options"><label><input type="radio" name="streamMode" value="0" /> JPEG tương thích</label><small>Ổn định với mọi máy, CPU cao hơn và độ trễ lớn hơn.</small><label><input type="radio" name="streamMode" value="1" checked /> H.264 phần cứng</label><small>Khuyên dùng: tương thích rộng, 1080p60 và độ trễ thấp.</small><label><input type="radio" name="streamMode" value="2" /> HEVC / H.265 phần cứng</label><small>Chất lượng cao ở bitrate thấp; cần GPU Windows hỗ trợ HEVC.</small></div><button class="primary" type="submit">Áp dụng</button></form></dialog>
+  <script src="video-renderer.js"></script>
   <script src="renderer.js"></script>
 </body>
 </html>
