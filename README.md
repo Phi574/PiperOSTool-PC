@@ -2,16 +2,15 @@
 
 <p align="center">Windows companion cho <a href="https://github.com/Phi574/PiperOSTool-Android">PiperOS Tool Android</a>.</p>
 
-## 3.3.1-beta · PiperOS Tool PC V2
+## 3.3.2-beta · PiperOS Tool PC V2
 
 - Quét LAN gửi broadcast tới từng subnet IPv4 hoạt động, QR PC ưu tiên địa chỉ của
   tuyến mạng mặc định để tránh chọn nhầm VPN hoặc adapter ảo.
 - Giới hạn tốc độ khung hình render theo FPS người dùng chọn, bao gồm cả luồng JPEG;
   chỉ số FPS tiếp tục phản ánh số khung hình thực sự hiển thị.
-- Receiver AirPlay quảng bá tên PiperOS đã nhập và nút dừng kết thúc cả cây tiến
-  trình native, tránh sót tiến trình receiver cũ phát tên `uxplay`.
-- Báo lỗi App Check bằng hướng xử lý cho Firebase desktop; ứng dụng không phát hành
-  token debug hoặc nhúng bí mật để né xác minh.
+- Receiver AirPlay quảng bá tên PiperOS đã nhập; bản Windows đóng gói engine dưới
+  tên tiến trình `PiperOS-player.exe`. AirPlay vẫn dùng engine UxPlay tương thích chuẩn.
+- Bỏ đăng nhập Firebase khỏi bản PC để app mở trực tiếp, không cần tài khoản.
 
 ## 3.3.0.beta · PiperOS Tool PC V2
 
@@ -51,12 +50,18 @@
   model, phiên bản Android và phiên bản PiperOS Tool của thiết bị đang chiếu.
 - **Điều khiển Android:** gửi touch, Back và Home; Android luôn yêu cầu xác nhận
   phiên ở thiết bị đang chia sẻ trước khi video được truyền.
-- **Firebase:** đăng nhập bằng đúng Firebase project của PiperOS Tool để lưu dấu
-  phiên PC theo UID trong `users/{uid}/deviceSessions`. Phiên được mã hóa bằng
-  Windows DPAPI và tự khôi phục sau khi mở lại PC; không lưu mật khẩu.
+- **Không yêu cầu tài khoản:** kết nối và chiếu màn hình dùng trực tiếp qua LAN,
+  QR, mã ghép nối hoặc USB; không cần đăng nhập Firebase.
 - **Apple Screen Mirroring:** `PiperAirPlayReceiver.exe` khởi động UxPlay cùng
   Bonjour/mDNS và GStreamer đã được đóng gói trong MSI. Không dùng thành phần Apple
   độc quyền, không thay thế driver Apple USB và không hỗ trợ nội dung DRM.
+- **Chế độ trình chiếu:** chọn một màn hình Windows, bật toàn màn hình để ẩn taskbar
+  và giao diện điều khiển; `Esc` để thoát. Tùy chọn ẩn thanh Android chỉ cắt phần trên
+  và dưới của hình đang chiếu, không đổi thiết lập trên điện thoại.
+- **AirPlay toàn màn hình:** tùy chọn khởi chạy UxPlay với D3D11 fullscreen để hình
+  iPhone không bị giao diện Windows che. UxPlay mở trên màn hình chính Windows; nếu
+  dùng màn hình lớn riêng, đặt màn hình đó làm màn hình chính hoặc chọn Duplicate trong
+  cài đặt Display của Windows trước khi bật receiver.
 
 ## Build EXE và MSI
 
@@ -67,13 +72,6 @@ npm install
 npm run dist
 npm run msi
 ```
-
-`resources/firebase-config.json` chỉ chứa cấu hình client Firebase công khai, không
-bao giờ đưa service account, khóa quản trị hay `google-services.json` vào PC repo.
-Firebase App Check không có provider attestation tích hợp cho Windows desktop. Nếu
-Firebase Authentication bật Enforcement, bản PC cần custom provider và backend an
-toàn để cấp token. Nếu chưa có backend đó, hãy tắt Enforcement riêng cho
-Authentication trong Firebase Console để cho phép PC đăng nhập.
 
 `npm run dist` tạo NSIS `.exe` và portable `.exe` trong `release/`. `npm run msi`
 đóng gói thư mục `win-unpacked`, receiver AirPlay và dependency native thành MSI sau

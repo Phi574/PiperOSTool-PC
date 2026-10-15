@@ -144,21 +144,78 @@ $('streamForm').addEventListener('submit', (event) => {
   status(`Đã chọn ${['JPEG tương thích', 'H.264 phần cứng', 'HEVC phần cứng'][streamMode]}. Áp dụng từ lần kết nối kế tiếp.`);
 });
 const fullscreenButton = $('toggleFullscreen');
-const viewerPanel = document.querySelector('.viewer-panel');
-function syncFullscreenButton() { const active = document.fullscreenElement === viewerPanel; fullscreenButton.textContent = active ? '⤢' : '⛶'; fullscreenButton.title = active ? 'Thoát toàn màn hình chiếu' : 'Toàn màn hình chiếu'; fullscreenButton.setAttribute('aria-label', fullscreenButton.title); }
-fullscreenButton.onclick = async () => { if (document.fullscreenElement === viewerPanel) await document.exitFullscreen(); else await viewerPanel.requestFullscreen(); };
-document.addEventListener('fullscreenchange', syncFullscreenButton);
+const projectionDisplay = $('projectionDisplay');
+const projectionDialog = $('projectionDialog');
+let projectionMode = false;
+let cropSystemBars = localStorage.getItem('piperos.remote.cropSystemBars') === 'true';
+function syncCropSetting() {
+  $('screenStage').classList.toggle('crop-system-bars', cropSystemBars);
+  document.body.classList.toggle('crop-system-bars', cropSystemBars);
+  $('cropSystemBars').checked = cropSystemBars;
+}
+syncCropSetting();
+async function loadProjectionDisplays() {
+  try {
+    const displays = await window.piperos.getDisplays();
+    projectionDisplay.replaceChildren(...displays.map((display) => {
+      const option = document.createElement('option');
+      option.value = String(display.id);
+      option.textContent = `${display.name} · ${display.width} × ${display.height}${display.primary ? ' · Chính' : ''}`;
+      if (display.primary) option.selected = true;
+      return option;
+    }));
+  } catch { projectionDisplay.replaceChildren(new Option('Màn hình chính', '')); }
+}
+loadProjectionDisplays();
+function syncProjectionButton() {
+  fullscreenButton.textContent = projectionMode ? 'Thoát trình chiếu' : '⛶ Trình chiếu';
+  fullscreenButton.title = projectionMode ? 'Thoát chế độ trình chiếu (Esc)' : 'Chiếu toàn màn hình lên màn hình đã chọn';
+  fullscreenButton.setAttribute('aria-label', fullscreenButton.title);
+}
+async function exitProjectionMode() {
+  await window.piperos.setProjectionMode(false, projectionDisplay.value);
+  projectionMode = false;
+  document.body.classList.remove('projection-mode');
+  syncProjectionButton();
+}
+fullscreenButton.onclick = async () => {
+  if (projectionMode) return exitProjectionMode();
+  if (!activeConnection) return status('Kết nối điện thoại trước khi bật chế độ trình chiếu.', true);
+  await loadProjectionDisplays();
+  $('cropSystemBars').checked = cropSystemBars;
+  projectionDialog.showModal();
+};
+$('closeProjectionDialog').onclick = () => projectionDialog.close();
+$('cancelProjection').onclick = () => projectionDialog.close();
+$('projectionForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  cropSystemBars = $('cropSystemBars').checked;
+  localStorage.setItem('piperos.remote.cropSystemBars', String(cropSystemBars));
+  syncCropSetting();
+  projectionDialog.close();
+  try {
+    await window.piperos.setProjectionMode(true, projectionDisplay.value);
+    projectionMode = true;
+    document.body.classList.add('projection-mode');
+    fitCanvas();
+    syncProjectionButton();
+  } catch (error) { status(`Không thể bật chế độ trình chiếu: ${error.message}`, true); }
+});
+window.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && projectionMode) exitProjectionMode().catch(() => {});
+});
+window.piperos.on('window:fullscreen', (active) => {
+  if (!active && projectionMode) {
+    projectionMode = false;
+    document.body.classList.remove('projection-mode');
+    syncProjectionButton();
+  }
+});
 $('screenStage').addEventListener('pointerdown', (event) => { const box = canvas.getBoundingClientRect(); if (!box.width || !box.height) return; event.currentTarget.setPointerCapture?.(event.pointerId); window.piperos.touch({ action: 0, x: (event.clientX - box.left) / box.width, y: (event.clientY - box.top) / box.height }); });
 $('screenStage').addEventListener('pointermove', (event) => { if (event.buttons) { const box = canvas.getBoundingClientRect(); if (!box.width || !box.height) return; window.piperos.touch({ action: 2, x: (event.clientX - box.left) / box.width, y: (event.clientY - box.top) / box.height }); } });
 $('screenStage').addEventListener('pointerup', (event) => { const box = canvas.getBoundingClientRect(); if (!box.width || !box.height) return; window.piperos.touch({ action: 1, x: (event.clientX - box.left) / box.width, y: (event.clientY - box.top) / box.height }); });
 $('createPcQr').onclick = async () => { try { const selected = await supportedQuality(); pendingStreamMode = selected.stream; activeConnection = null; fallbackAttempted = false; await unlockAudio(); const result = await window.piperos.createPcQr(selected); $('pcQrImage').src = result.image; $('pcQrCard').classList.remove('hidden'); $('pcQrStatus').textContent = `Đang chờ điện thoại quét · ${['JPEG', 'H.264', 'HEVC'][selected.stream]} · ${selected.width}p cạnh dài · ${selected.fps} FPS.`; status('Mã QR PC đã sẵn sàng'); } catch (error) { status(error.message, true); } };
-const loginDialog = $('loginDialog');
-function showAccount(user) { $('accountState').textContent = user?.email || 'Chưa đăng nhập Firebase'; $('firebaseButton').textContent = user ? 'Đổi tài khoản' : 'Đăng nhập Firebase'; }
-$('firebaseButton').onclick = () => { $('loginError').textContent = ''; $('firebasePassword').value = ''; loginDialog.showModal(); };
-$('closeLoginDialog').onclick = () => loginDialog.close();
-$('loginForm').addEventListener('submit', async (event) => { event.preventDefault(); $('loginError').textContent = ''; try { const user = await window.piperos.firebaseLogin($('firebaseEmail').value.trim(), $('firebasePassword').value); showAccount(user); loginDialog.close(); } catch (error) { $('loginError').textContent = error.message || 'Không thể đăng nhập Firebase.'; } });
-window.piperos.firebaseRestore().then(showAccount).catch(() => showAccount(null));
-$('startApple').onclick = async () => { try { const result = await window.piperos.appleStart({ name: $('appleName').value.trim(), resolution: $('appleResolution').value, fps: Number($('appleFps').value) }); $('appleStatus').textContent = result.message; $('startApple').disabled = true; $('stopApple').disabled = false; } catch (error) { $('appleStatus').textContent = error.message; } };
+$('startApple').onclick = async () => { try { const result = await window.piperos.appleStart({ name: $('appleName').value.trim(), resolution: $('appleResolution').value, fps: Number($('appleFps').value), fullscreen: $('appleFullscreen').checked }); $('appleStatus').textContent = result.message; $('startApple').disabled = true; $('stopApple').disabled = false; } catch (error) { $('appleStatus').textContent = error.message; } };
 $('stopApple').onclick = async () => { const result = await window.piperos.appleStop(); $('appleStatus').textContent = result.message; $('startApple').disabled = false; $('stopApple').disabled = true; };
 window.piperos.on('remote:connected', ({ width, height, stream }) => {
   const requested = pendingStreamMode;

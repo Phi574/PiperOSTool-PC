@@ -9,13 +9,12 @@ contextBridge.exposeInMainWorld('piperos', {
   usbDevices: () => ipcRenderer.invoke('usb:devices'),
   usbSetup: () => ipcRenderer.invoke('usb:setup'),
   usbConnect: (serial, quality) => ipcRenderer.invoke('usb:connect', serial, quality),
-  firebaseLogin: (email, password) => ipcRenderer.invoke('firebase:login', email, password),
-  firebaseLogout: () => ipcRenderer.invoke('firebase:logout'),
-  firebaseRestore: () => ipcRenderer.invoke('firebase:restore'),
   createPcQr: (quality) => ipcRenderer.invoke('remote:pc-qr', quality),
   appleStart: (settings) => ipcRenderer.invoke('apple:start', settings),
   appleStop: () => ipcRenderer.invoke('apple:stop'),
   fullscreen: (enabled) => ipcRenderer.invoke('window:fullscreen', enabled),
+  getDisplays: () => ipcRenderer.invoke('window:displays'),
+  setProjectionMode: (enabled, displayId) => ipcRenderer.invoke('window:projection', enabled, displayId),
   openExternal: (url) => ipcRenderer.invoke('system:open-external', url),
   on: (channel, callback) => ipcRenderer.on(channel, (_, value) => callback(value))
 });
