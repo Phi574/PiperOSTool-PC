@@ -7,6 +7,10 @@ class PiperHardwareVideoRenderer {
     this.decoder = null;
     this.generation = 0;
     this.stream = 0;
+    this.maxFps = 60;
+    this.lastRenderedTimestampUs = null;
+    this.lastJpegRenderAt = 0;
+    this.setFrameRate(60);
     this.codecData = new Uint8Array();
     this.frameTimings = new Map();
     this.resetStats();
@@ -75,10 +79,19 @@ class PiperHardwareVideoRenderer {
     return config;
   }
 
-  async configure({ stream, width, height, codecData }) {
+  setFrameRate(fps) {
+    this.maxFps = Math.max(1, Math.min(120, Number(fps) || 60));
+    this.minFrameIntervalUs = 1_000_000 / this.maxFps;
+    this.minFrameIntervalMs = 1000 / this.maxFps;
+  }
+
+  async configure({ stream, width, height, fps, codecData }) {
     const generation = ++this.generation;
     this.closeDecoder();
     this.stream = stream;
+    if (fps) this.setFrameRate(fps);
+    this.lastRenderedTimestampUs = null;
+    this.lastJpegRenderAt = 0;
     this.codecData = this.bytes(codecData);
     this.canvas.width = width; this.canvas.height = height;
     this.onResize?.(width, height);
@@ -93,6 +106,8 @@ class PiperHardwareVideoRenderer {
       output: (frame) => {
         if (generation !== this.generation) { frame.close(); return; }
         try {
+          if (this.lastRenderedTimestampUs != null && frame.timestamp - this.lastRenderedTimestampUs < this.minFrameIntervalUs) return;
+          this.lastRenderedTimestampUs = frame.timestamp;
           this.render(frame);
           this.recordRendered(frame.timestamp);
         } finally { frame.close(); }
@@ -122,8 +137,10 @@ class PiperHardwareVideoRenderer {
 
   async renderJpeg(bytes, sentAtMs) {
     const generation = this.generation;
-    const encoded = this.bytes(bytes);
     const receivedAt = performance.now();
+    if (this.lastJpegRenderAt && receivedAt - this.lastJpegRenderAt < this.minFrameIntervalMs) return;
+    this.lastJpegRenderAt = receivedAt;
+    const encoded = this.bytes(bytes);
     const image = await createImageBitmap(new Blob([encoded], { type: 'image/jpeg' }));
     try {
       if (generation !== this.generation) return;

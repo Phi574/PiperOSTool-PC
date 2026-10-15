@@ -8,6 +8,29 @@ const DISCOVER = 'PIPER_REMOTE_DISCOVER';
 const CODE_LOOKUP = 'PIPER_REMOTE_CODE|';
 const HOST_REPLY = 'PIPER_REMOTE_HOST|';
 
+function ipv4Number(address) {
+  const octets = address.split('.').map(Number);
+  if (octets.length !== 4 || octets.some((value) => !Number.isInteger(value) || value < 0 || value > 255)) return null;
+  return (((octets[0] << 24) | (octets[1] << 16) | (octets[2] << 8) | octets[3]) >>> 0);
+}
+
+function getBroadcastTargets(interfaces = require('node:os').networkInterfaces()) {
+  const targets = new Set(['255.255.255.255']);
+  for (const addresses of Object.values(interfaces)) {
+    for (const address of addresses || []) {
+      if (address.family !== 'IPv4' || address.internal || !address.netmask) continue;
+      const ip = ipv4Number(address.address);
+      const mask = ipv4Number(address.netmask);
+      if (ip == null || mask == null) continue;
+      const prefix = address.cidr?.split('/')[1];
+      if (prefix != null && Number(prefix) >= 31) continue;
+      const broadcast = ((ip & mask) | (~mask >>> 0)) >>> 0;
+      targets.add([broadcast >>> 24, (broadcast >>> 16) & 255, (broadcast >>> 8) & 255, broadcast & 255].join('.'));
+    }
+  }
+  return [...targets];
+}
+
 function writeUtf(socket, value) {
   const payload = Buffer.from(value, 'utf8');
   const header = Buffer.allocUnsafe(2);
@@ -47,9 +70,11 @@ async function discoverRemote(code = null, timeoutMs = 2400) {
     const socket = dgram.createSocket('udp4');
     const message = Buffer.from(code ? `${CODE_LOOKUP}${code}` : DISCOVER);
     let finished = false;
+    let timer = null;
     const finish = () => {
       if (finished) return;
       finished = true;
+      if (timer) clearTimeout(timer);
       try { socket.close(); } catch { /* Socket can already be closed after an error. */ }
       resolve([...found.values()]);
     };
@@ -66,9 +91,11 @@ async function discoverRemote(code = null, timeoutMs = 2400) {
     });
     socket.bind(() => {
       socket.setBroadcast(true);
-      socket.send(message, DISCOVERY_PORT, '255.255.255.255');
-      const timer = setTimeout(finish, timeoutMs);
+      timer = setTimeout(finish, timeoutMs);
       timer.unref?.();
+      for (const target of getBroadcastTargets()) {
+        socket.send(message, DISCOVERY_PORT, target, () => undefined);
+      }
     });
     socket.on('error', finish);
   });
@@ -253,4 +280,4 @@ class PiperRemoteClient extends EventEmitter {
   }
 }
 
-module.exports = { PiperRemoteClient, discoverRemote };
+module.exports = { PiperRemoteClient, discoverRemote, getBroadcastTargets };

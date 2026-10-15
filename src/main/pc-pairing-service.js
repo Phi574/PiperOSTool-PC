@@ -1,14 +1,30 @@
 const crypto = require('node:crypto');
 const net = require('node:net');
 const os = require('node:os');
+const { execFileSync } = require('node:child_process');
 
-function localIpv4() {
-  for (const addresses of Object.values(os.networkInterfaces())) {
-    for (const address of addresses || []) {
-      if (address.family === 'IPv4' && !address.internal) return address.address;
+function pickLocalIpv4(interfaces) {
+  const names = Object.keys(interfaces).sort((left, right) => {
+    const score = (name) => /wi-?fi|wlan|ethernet/i.test(name) ? 0 : /virtual|vpn|hyper-v|vmware|virtualbox|loopback/i.test(name) ? 2 : 1;
+    return score(left) - score(right);
+  });
+  for (const name of names) {
+    for (const address of interfaces[name] || []) {
+      if (address.family === 'IPv4' && !address.internal && !address.address.startsWith('169.254.')) return address.address;
     }
   }
   return null;
+}
+
+function localIpv4() {
+  if (process.platform === 'win32') {
+    try {
+      const script = "$route = Get-NetRoute -DestinationPrefix '0.0.0.0/0' | Sort-Object RouteMetric, InterfaceMetric | Select-Object -First 1; if ($route) { Get-NetIPAddress -AddressFamily IPv4 -InterfaceIndex $route.InterfaceIndex | Where-Object { $_.IPAddress -notlike '169.254.*' } | Select-Object -First 1 -ExpandProperty IPAddress }";
+      const routedAddress = execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], { windowsHide: true, timeout: 2500, stdio: ['ignore', 'pipe', 'ignore'] }).toString('utf8').trim();
+      if (routedAddress && !routedAddress.startsWith('169.254.')) return routedAddress;
+    } catch { /* Fall back to available adapters. */ }
+  }
+  return pickLocalIpv4(os.networkInterfaces());
 }
 
 class PcPairingService {
@@ -49,4 +65,4 @@ class PcPairingService {
   stop() { if (this.timeout) clearTimeout(this.timeout); this.timeout = null; this.token = null; this.server?.close(); this.server = null; }
 }
 
-module.exports = { PcPairingService };
+module.exports = { PcPairingService, pickLocalIpv4 };

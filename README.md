@@ -2,6 +2,17 @@
 
 <p align="center">Windows companion cho <a href="https://github.com/Phi574/PiperOSTool-Android">PiperOS Tool Android</a>.</p>
 
+## 3.3.1-beta · PiperOS Tool PC V2
+
+- Quét LAN gửi broadcast tới từng subnet IPv4 hoạt động, QR PC ưu tiên địa chỉ của
+  tuyến mạng mặc định để tránh chọn nhầm VPN hoặc adapter ảo.
+- Giới hạn tốc độ khung hình render theo FPS người dùng chọn, bao gồm cả luồng JPEG;
+  chỉ số FPS tiếp tục phản ánh số khung hình thực sự hiển thị.
+- Receiver AirPlay quảng bá tên PiperOS đã nhập và nút dừng kết thúc cả cây tiến
+  trình native, tránh sót tiến trình receiver cũ phát tên `uxplay`.
+- Báo lỗi App Check bằng hướng xử lý cho Firebase desktop; ứng dụng không phát hành
+  token debug hoặc nhúng bí mật để né xác minh.
+
 ## 3.3.0.beta · PiperOS Tool PC V2
 
 - Làm mới toàn bộ bố cục theo dạng thẻ gọn, bo góc và màu sắc đồng bộ với PiperOS
@@ -59,11 +70,15 @@ npm run msi
 
 `resources/firebase-config.json` chỉ chứa cấu hình client Firebase công khai, không
 bao giờ đưa service account, khóa quản trị hay `google-services.json` vào PC repo.
+Firebase App Check không có provider attestation tích hợp cho Windows desktop. Nếu
+Firebase Authentication bật Enforcement, bản PC cần custom provider và backend an
+toàn để cấp token. Nếu chưa có backend đó, hãy tắt Enforcement riêng cho
+Authentication trong Firebase Console để cho phép PC đăng nhập.
 
 `npm run dist` tạo NSIS `.exe` và portable `.exe` trong `release/`. `npm run msi`
 đóng gói thư mục `win-unpacked`, receiver AirPlay và dependency native thành MSI sau
 khi WiX được cài. Bản MSI lớn hơn vì mang theo decoder, audio pipeline và mDNS.
-MSI `3.3.0.1` có wizard chọn thư mục, thông báo GPLv3, tiến trình cài đặt và shortcut
+MSI `3.3.1.1` có wizard chọn thư mục, thông báo GPLv3, tiến trình cài đặt và shortcut
 trên Desktop/Start Menu. Vì cài vào `Program Files`, Windows sẽ yêu cầu UAC.
 
 ## USB Type-C và driver

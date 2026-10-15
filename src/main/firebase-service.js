@@ -65,12 +65,20 @@ class FirebaseService {
     await setDoc(doc(getFirestore(this.app), 'users', user.uid, 'deviceSessions', sessionId), {
       sessionId, deviceId: this.deviceId(), deviceName: `${os.hostname()} (Windows)`,
       manufacturer: 'PC', model: os.hostname(), platform: 'Windows', windowsVersion: os.release(), architecture: os.arch(),
-      app: 'PiperOS Tool PC', appVersion: '3.3.0.beta', loginAt: now, lastSeenAt: now, updatedAt: now,
+      app: 'PiperOS Tool PC', appVersion: '3.3.1-beta', loginAt: now, lastSeenAt: now, updatedAt: now,
       active: true, revoked: false, status: 'active'
     }, { merge: true });
   }
   async login(email, password) {
-    const result = await signInWithEmailAndPassword(this.auth(), email, password);
+    let result;
+    try {
+      result = await signInWithEmailAndPassword(this.auth(), email, password);
+    } catch (error) {
+      if (String(error?.code || '').includes('firebase-app-check-token-is-invalid')) {
+        throw new Error('Firebase App Check đang từ chối ứng dụng PC (token không hợp lệ). PiperOS Tool PC chưa có custom App Check provider và backend cấp token; hãy tắt Enforcement cho Firebase Authentication hoặc triển khai provider desktop trên backend Firebase. Không thể khắc phục bằng cách tạo token giả trong ứng dụng.');
+      }
+      throw error;
+    }
     const user = result.user;
     await this.startSession(user, true);
     this.storeUser(user);

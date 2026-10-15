@@ -71,6 +71,7 @@ app.on('window-all-closed', () => process.platform !== 'darwin' && app.quit());
 app.on('before-quit', async () => {
   pcPairing?.stop();
   client?.close();
+  await appleReceiver?.stop();
   if (forwarded) await adb.removeForward(forwarded.serial, forwarded.port);
 });
 

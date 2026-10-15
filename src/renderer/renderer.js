@@ -158,9 +158,11 @@ $('firebaseButton').onclick = () => { $('loginError').textContent = ''; $('fireb
 $('closeLoginDialog').onclick = () => loginDialog.close();
 $('loginForm').addEventListener('submit', async (event) => { event.preventDefault(); $('loginError').textContent = ''; try { const user = await window.piperos.firebaseLogin($('firebaseEmail').value.trim(), $('firebasePassword').value); showAccount(user); loginDialog.close(); } catch (error) { $('loginError').textContent = error.message || 'Không thể đăng nhập Firebase.'; } });
 window.piperos.firebaseRestore().then(showAccount).catch(() => showAccount(null));
-$('startApple').onclick = async () => { try { const result = await window.piperos.appleStart({ name: $('appleName').value.trim(), resolution: $('appleResolution').value, fps: Number($('appleFps').value) }); $('appleStatus').textContent = result.message; } catch (error) { $('appleStatus').textContent = error.message; } };
+$('startApple').onclick = async () => { try { const result = await window.piperos.appleStart({ name: $('appleName').value.trim(), resolution: $('appleResolution').value, fps: Number($('appleFps').value) }); $('appleStatus').textContent = result.message; $('startApple').disabled = true; $('stopApple').disabled = false; } catch (error) { $('appleStatus').textContent = error.message; } };
+$('stopApple').onclick = async () => { const result = await window.piperos.appleStop(); $('appleStatus').textContent = result.message; $('startApple').disabled = false; $('stopApple').disabled = true; };
 window.piperos.on('remote:connected', ({ width, height, stream }) => {
   const requested = pendingStreamMode;
+  videoRenderer.setFrameRate(activeConnection?.quality?.fps || 60);
   streamMode = stream;
   if (stream === 0) fallbackAttempted = false;
   localStorage.setItem('piperos.remote.stream', String(stream));

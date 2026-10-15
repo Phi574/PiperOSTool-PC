@@ -1,6 +1,6 @@
 {
   "name": "piperos-tool-pc",
-  "version": "3.3.0-beta",
+  "version": "3.3.1-beta",
   "description": "PiperOS View Remote desktop companion for Windows",
   "author": "Phi574",
   "main": "src/main/main.js",
@@ -11,7 +11,8 @@
     "pack": "electron-builder --dir",
     "dist": "electron-builder --win nsis",
     "dist:portable": "electron-builder --win portable",
-    "msi": "powershell -ExecutionPolicy Bypass -File scripts/build-msi.ps1"
+    "msi": "powershell -ExecutionPolicy Bypass -File scripts/build-msi.ps1",
+    "test": "node --test"
   },
   "build": {
     "appId": "com.piper.os.tool.pc",
